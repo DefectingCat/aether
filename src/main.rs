@@ -39,7 +39,7 @@ async fn main() -> Result<()> {
     client
         .matrix_auth()
         .login_username(&config.matrix_username, &config.matrix_password)
-        .initial_device_display_name("AI Bot")
+        .initial_device_display_name(&config.device_display_name)
         .await?;
 
     let user_id = client.user_id().unwrap();

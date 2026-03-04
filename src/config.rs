@@ -6,6 +6,7 @@ pub struct Config {
     pub matrix_homeserver: String,
     pub matrix_username: String,
     pub matrix_password: String,
+    pub device_display_name: String,
 
     // AI API 配置
     pub openai_api_key: String,
@@ -27,6 +28,8 @@ impl Config {
             matrix_homeserver: std::env::var("MATRIX_HOMESERVER")?,
             matrix_username: std::env::var("MATRIX_USERNAME")?,
             matrix_password: std::env::var("MATRIX_PASSWORD")?,
+            device_display_name: std::env::var("DEVICE_DISPLAY_NAME")
+                .unwrap_or_else(|_| "AI Bot".to_string()),
             openai_api_key: std::env::var("OPENAI_API_KEY")?,
             openai_base_url: std::env::var("OPENAI_BASE_URL")
                 .unwrap_or_else(|_| "https://api.openai.com/v1".to_string()),
