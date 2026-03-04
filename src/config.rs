@@ -20,6 +20,9 @@ pub struct Config {
 
 impl Config {
     pub fn from_env() -> Result<Self> {
+        // 加载 .env 文件（如果存在）
+        dotenvy::dotenv().ok();
+
         Ok(Self {
             matrix_homeserver: std::env::var("MATRIX_HOMESERVER")?,
             matrix_username: std::env::var("MATRIX_USERNAME")?,
