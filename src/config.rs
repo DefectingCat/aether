@@ -46,7 +46,7 @@ impl Default for Config {
             openai_base_url: "https://api.openai.com/v1".to_string(),
             openai_model: "gpt-4o-mini".to_string(),
             system_prompt: None,
-            command_prefix: "!ai".to_string(),
+            command_prefix: "!".to_string(),
             max_history: 10,
             bot_owners: Vec::new(),
             streaming_enabled: true,
@@ -115,7 +115,7 @@ impl Config {
                 .unwrap_or_else(|_| "gpt-4o-mini".to_string()),
             system_prompt: std::env::var("SYSTEM_PROMPT").ok(),
             command_prefix: std::env::var("BOT_COMMAND_PREFIX")
-                .unwrap_or_else(|_| "!ai".to_string()),
+                .unwrap_or_else(|_| "!".to_string()),
             max_history: std::env::var("MAX_HISTORY")
                 .ok()
                 .and_then(|s| s.parse().ok())

@@ -115,8 +115,11 @@ impl<T: AiServiceTrait> EventHandler<T> {
         // 检查是否是命令（以命令前缀开头）
         let is_command = self.command_gateway.is_command(text);
 
+        info!("收到消息: '{}', 命令前缀: '{}', 是否命令: {}", text, self.command_gateway.parser().prefix(), is_command);
+
         // 处理命令
         if is_command {
+            info!("分发命令: {}", text);
             // 尝试通过命令网关分发
             self.command_gateway
                 .dispatch(
@@ -362,7 +365,7 @@ mod tests {
             openai_base_url: "https://api.openai.com/v1".to_string(),
             openai_model: "gpt-4o-mini".to_string(),
             system_prompt: None,
-            command_prefix: "!ai ".to_string(),
+            command_prefix: "!".to_string(),
             max_history: 10,
             bot_owners: Vec::new(),
             streaming_enabled: false,
@@ -378,14 +381,14 @@ mod tests {
     #[test]
     fn test_extract_message_with_prefix() {
         let handler = create_test_handler();
-        let result = handler.extract_message("!ai Hello world");
+        let result = handler.extract_message("! Hello world");
         assert_eq!(result, "Hello world");
     }
 
     #[test]
     fn test_extract_message_with_prefix_and_spaces() {
         let handler = create_test_handler();
-        let result = handler.extract_message("!ai   Multiple spaces   ");
+        let result = handler.extract_message("!   Multiple spaces   ");
         assert_eq!(result, "Multiple spaces");
     }
 
@@ -399,7 +402,7 @@ mod tests {
     #[test]
     fn test_extract_message_with_prefix_and_mention() {
         let handler = create_test_handler();
-        let result = handler.extract_message("!ai @bot:matrix.org Combined message");
+        let result = handler.extract_message("! @bot:matrix.org Combined message");
         assert_eq!(result, "Combined message");
     }
 
@@ -413,7 +416,7 @@ mod tests {
     #[test]
     fn test_extract_message_empty_after_trim() {
         let handler = create_test_handler();
-        let result = handler.extract_message("!ai    ");
+        let result = handler.extract_message("!    ");
         assert_eq!(result, "");
     }
 }
