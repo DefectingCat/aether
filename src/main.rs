@@ -5,6 +5,7 @@ mod config;
 mod conversation;
 mod event_handler;
 mod modules;
+mod store;
 mod traits;
 mod ui;
 

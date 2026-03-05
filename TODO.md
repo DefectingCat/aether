@@ -44,8 +44,8 @@
 - [x] 添加 `db_path` 配置项
 
 ### 0.4 数据库层
-- [ ] SQLite 集成
-- [ ] migrations 目录
+- [x] SQLite 集成
+- [x] migrations 目录
 
 ### 0.5 错误处理
 - [ ] 自定义错误类型
@@ -70,21 +70,22 @@
 ## Phase 2 · Persona 人设模块
 
 ### 数据库设计
-- [ ] personas 表
-- [ ] room_persona 表
-- [ ] chat_history 表
+- [x] personas 表
+- [x] room_persona 表
+- [x] chat_history 表
 
 ### 功能实现
-- [ ] `!persona set <id>`
+- [x] `!persona set <id>`
 - [ ] `!persona create <id>`
-- [ ] `!persona list`
-- [ ] `!persona off`
+- [x] `!persona list`
+- [x] `!persona off`
+- [x] `!persona info <id>`
 
 ### 内置人设
-- [ ] 毒舌程序员
-- [ ] 赛博禅师
-- [ ] 维基百科娘
-- [ ] 猫娘助手
+- [x] 毒舌程序员
+- [x] 赛博禅师
+- [x] 维基百科娘
+- [x] 猫娘助手
 
 ---
 
@@ -135,6 +136,9 @@
 
 | 日期 | 内容 |
 |------|------|
+| 2026-03-05 | 实现 Persona 人设模块 (set/list/off/info 命令) |
+| 2026-03-05 | 集成 SQLite 数据库和迁移系统 |
+| 2026-03-05 | 添加 4 个内置人设 (毒舌程序员/赛博禅师/维基百科娘/猫娘助手) |
 | 2026-03-05 | 实现 !bot avatar 命令修改 Bot 头像 |
 | 2026-03-05 | 实现 !bot join 命令加入指定房间 |
 | 2026-03-05 | 实现 !bot rooms 命令列出已加入房间 |
