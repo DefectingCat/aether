@@ -5,22 +5,109 @@ use tokio::sync::Mutex;
 
 use crate::ai_service::StreamingState;
 
-/// 流式聊天的响应类型
+/// 流式聊天的响应类型。
+///
+/// 返回一个元组，包含：
+/// - `Arc<Mutex<StreamingState>>`: 共享状态，用于追踪累积的响应内容
+/// - `Pin<Box<dyn Stream<Item = Result<String>> + Send>>`: 可消费的流，每次产生一个文本片段
+///
+/// 这种设计允许生产者（AI 服务）和消费者（事件处理器）并发工作：
+/// - 消费者可以从 Stream 读取每个 chunk
+/// - 同时可以通过 StreamingState 获取当前累积的完整内容
 pub type ChatStreamResponse = (
     Arc<Mutex<StreamingState>>,
     Pin<Box<dyn Stream<Item = Result<String>> + Send>>,
 );
 
-/// AI 服务的 trait 抽象，用于支持 mock 测试
+/// AI 服务的 trait 抽象。
+///
+/// 定义了 AI 服务必须实现的接口，支持依赖注入和 mock 测试。
+/// 所有方法都是异步的，返回 `Future` 以兼容 `async fn` trait。
+///
+/// # Trait Bounds
+///
+/// - `Clone`: 允许在多个地方共享服务实例
+/// - `Send + Sync`: 确保可以跨线程安全使用
+/// - `'static`: 确保可以存储在需要静态生命周期的上下文中
+///
+/// # Example
+///
+/// ```rust
+/// use anyhow::Result;
+/// use aether_matrix::traits::AiServiceTrait;
+/// use std::future::Future;
+///
+/// // 实现 trait 的 mock 服务
+/// #[derive(Clone)]
+/// struct MockAiService;
+///
+/// impl AiServiceTrait for MockAiService {
+///     async fn chat(&self, session_id: &str, prompt: &str) -> Result<String> {
+///         Ok(format!("Echo: {}", prompt))
+///     }
+///
+///     async fn reset_conversation(&self, session_id: &str) {}
+///
+///     async fn chat_stream(
+///         &self,
+///         session_id: &str,
+///         prompt: &str,
+///     ) -> Result<aether_matrix::traits::ChatStreamResponse> {
+///         unimplemented!("mock implementation")
+///     }
+/// }
+/// ```
 pub trait AiServiceTrait: Clone + Send + Sync + 'static {
-    /// 普通聊天
+    /// 执行普通（非流式）聊天。
+    ///
+    /// 发送用户消息并返回 AI 的完整回复。
+    /// 会自动将消息添加到会话历史中。
+    ///
+    /// # Arguments
+    ///
+    /// * `session_id` - 会话标识符，用于隔离不同用户/房间的对话
+    /// * `prompt` - 用户输入的消息内容
+    ///
+    /// # Returns
+    ///
+    /// 成功时返回 AI 的回复文本。
+    ///
+    /// # Errors
+    ///
+    /// 当 API 调用失败时返回错误，例如：
+    /// - 网络连接问题
+    /// - API 认证失败
+    /// - 服务端错误
     fn chat(&self, session_id: &str, prompt: &str) -> impl Future<Output = Result<String>> + Send;
 
-    /// 重置会话
+    /// 重置指定会话的历史记录。
+    ///
+    /// 清除该会话的所有历史消息，但保留系统提示词。
+    ///
+    /// # Arguments
+    ///
+    /// * `session_id` - 要重置的会话标识符
     fn reset_conversation(&self, session_id: &str) -> impl Future<Output = ()> + Send;
 
-    /// 流式聊天
-    /// 返回共享状态用于追踪累积内容，以及 Stream 用于消费
+    /// 执行流式聊天。
+    ///
+    /// 与 [`chat`](AiServiceTrait::chat) 类似，但返回流式响应，
+    /// 允许实时显示 AI 的输出（打字机效果）。
+    ///
+    /// # Arguments
+    ///
+    /// * `session_id` - 会话标识符，用于隔离不同用户/房间的对话
+    /// * `prompt` - 用户输入的消息内容
+    ///
+    /// # Returns
+    ///
+    /// 成功时返回 [`ChatStreamResponse`]，包含：
+    /// - 共享状态，可随时获取累积的完整内容
+    /// - 流，消费时产生每个文本片段
+    ///
+    /// # Errors
+    ///
+    /// 当 API 调用初始化失败时返回错误。
     fn chat_stream(
         &self,
         session_id: &str,

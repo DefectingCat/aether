@@ -1,34 +1,127 @@
 use anyhow::Result;
 
+/// Matrix AI 机器人的配置结构体。
+///
+/// 包含连接 Matrix 服务器、调用 AI API 以及控制机器人行为所需的全部配置项。
+/// 配置可通过环境变量或 `.env` 文件加载，详见 [`Config::from_env`]。
+///
+/// # 必需配置
+///
+/// - `MATRIX_HOMESERVER`: Matrix 服务器地址
+/// - `MATRIX_USERNAME`: Matrix 用户名
+/// - `MATRIX_PASSWORD`: Matrix 密码
+/// - `OPENAI_API_KEY`: OpenAI API 密钥
+///
+/// # 可选配置
+///
+/// 所有可选配置都有合理的默认值，详见各字段文档。
+///
+/// # Example
+///
+/// ```no_run
+/// use aether_matrix::config::Config;
+///
+/// // 从环境变量加载配置
+/// let config = Config::from_env().expect("配置加载失败");
+///
+/// assert!(!config.matrix_homeserver.is_empty());
+/// assert!(!config.openai_api_key.is_empty());
+/// ```
 #[derive(Debug, Clone)]
 pub struct Config {
-    // Matrix 配置
+    // --- Matrix 配置 ---
+
+    /// Matrix 服务器地址（必需）。
+    ///
+    /// 示例: `https://matrix.org`
     pub matrix_homeserver: String,
+
+    /// Matrix 用户名（必需）。
+    ///
+    /// 通常是完整的用户 ID，如 `@user:matrix.org`
     pub matrix_username: String,
+
+    /// Matrix 密码（必需）。
     pub matrix_password: String,
+
+    /// Matrix 设备 ID（可选）。
+    ///
+    /// 设置固定的设备 ID 可以避免重复登录创建新设备。
+    /// 建议使用一个有意义的标识符，如 `AETHER_BOT_001`。
     pub matrix_device_id: Option<String>,
+
+    /// 设备显示名称。
+    ///
+    /// 在 Matrix 客户端的设备列表中显示的名称。
     pub device_display_name: String,
+
+    /// Matrix SDK 存储路径。
+    ///
+    /// 用于存储会话状态、同步令牌等持久化数据。
     pub store_path: String,
 
-    // AI API 配置
+    // --- AI API 配置 ---
+
+    /// OpenAI API 密钥（必需）。
     pub openai_api_key: String,
+
+    /// OpenAI API 基础 URL。
+    ///
+    /// 可设置为兼容的 API 端点，如 Azure OpenAI 或自托管服务。
     pub openai_base_url: String,
+
+    /// 使用的模型名称。
+    ///
+    /// 支持所有 OpenAI 兼容的模型，如 `gpt-4o-mini`、`gpt-4` 等。
     pub openai_model: String,
+
+    /// 系统提示词。
+    ///
+    /// 用于设置 AI 的行为和角色。
     pub system_prompt: Option<String>,
 
-    // 机器人配置
+    // --- 机器人配置 ---
+
+    /// 命令前缀。
+    ///
+    /// 在群聊中触发 AI 响应的前缀，默认为 `!ai`。
     pub command_prefix: String,
+
+    /// 最大历史轮数。
+    ///
+    /// 每个会话保留的最大对话轮数（一轮 = 一问一答）。
+    /// 超出限制时会自动丢弃最早的历史。
     pub max_history: usize,
 
-    // 流式输出配置
+    // --- 流式输出配置 ---
+
+    /// 是否启用流式输出。
+    ///
+    /// 启用后 AI 响应以打字机效果逐步显示。
     pub streaming_enabled: bool,
+
+    /// 流式更新最小间隔（毫秒）。
+    ///
+    /// 控制消息更新的频率，避免过于频繁的 API 调用。
     pub streaming_min_interval_ms: u64,
+
+    /// 流式更新最小字符数。
+    ///
+    /// 累积到此数量的字符后才更新消息，与时间间隔共同控制更新节奏。
     pub streaming_min_chars: usize,
 
-    // 日志配置
+    // --- 日志配置 ---
+
+    /// 日志级别。
+    ///
+    /// 支持: `trace`, `debug`, `info`, `warn`, `error`
     pub log_level: String,
 }
 
+/// 为 `Config` 提供合理的默认值。
+///
+/// 默认值适用于大多数场景，必需字段会被设置为空字符串，
+/// 调用 [`Config::from_env`] 时会验证这些字段是否已配置。
 impl Default for Config {
     fn default() -> Self {
         Self {
@@ -53,6 +146,58 @@ impl Default for Config {
 }
 
 impl Config {
+    /// 从环境变量加载配置。
+    ///
+    /// 优先尝试加载当前目录下的 `.env` 文件，然后从环境变量读取配置。
+    /// 如果 `.env` 文件不存在或加载失败，会记录警告并继续从环境变量读取。
+    ///
+    /// # Arguments
+    ///
+    /// 无参数，所有配置从环境变量读取。
+    ///
+    /// # Returns
+    ///
+    /// 成功时返回填充好的 `Config` 实例。
+    ///
+    /// # Errors
+    ///
+    /// 当以下必需环境变量未设置时返回错误：
+    /// - `MATRIX_HOMESERVER`
+    /// - `MATRIX_USERNAME`
+    /// - `MATRIX_PASSWORD`
+    /// - `OPENAI_API_KEY`
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use aether_matrix::config::Config;
+    ///
+    /// // 确保已设置必需的环境变量
+    /// // MATRIX_HOMESERVER, MATRIX_USERNAME, MATRIX_PASSWORD, OPENAI_API_KEY
+    ///
+    /// let config = Config::from_env().expect("配置加载失败");
+    /// ```
+    ///
+    /// # Environment Variables
+    ///
+    /// | 变量名 | 必需 | 默认值 | 说明 |
+    /// |--------|------|--------|------|
+    /// | `MATRIX_HOMESERVER` | 是 | - | Matrix 服务器地址 |
+    /// | `MATRIX_USERNAME` | 是 | - | Matrix 用户名 |
+    /// | `MATRIX_PASSWORD` | 是 | - | Matrix 密码 |
+    /// | `MATRIX_DEVICE_ID` | 否 | `None` | 设备 ID |
+    /// | `DEVICE_DISPLAY_NAME` | 否 | `AI Bot` | 设备显示名称 |
+    /// | `STORE_PATH` | 否 | `./store` | 存储路径 |
+    /// | `OPENAI_API_KEY` | 是 | - | API 密钥 |
+    /// | `OPENAI_BASE_URL` | 否 | OpenAI 默认 | API 基础 URL |
+    /// | `OPENAI_MODEL` | 否 | `gpt-4o-mini` | 模型名称 |
+    /// | `SYSTEM_PROMPT` | 否 | `None` | 系统提示词 |
+    /// | `BOT_COMMAND_PREFIX` | 否 | `!ai` | 命令前缀 |
+    /// | `MAX_HISTORY` | 否 | `10` | 最大历史轮数 |
+    /// | `STREAMING_ENABLED` | 否 | `true` | 启用流式输出 |
+    /// | `STREAMING_MIN_INTERVAL_MS` | 否 | `1000` | 流式更新间隔 |
+    /// | `STREAMING_MIN_CHARS` | 否 | `50` | 流式更新字符数 |
+    /// | `LOG_LEVEL` | 否 | `info` | 日志级别 |
     pub fn from_env() -> Result<Self> {
         // 加载 .env 文件（如果存在）
         // 在测试模式下跳过，以便测试可以完全控制环境变量

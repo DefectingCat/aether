@@ -11,40 +11,106 @@ use crate::config::Config;
 use crate::conversation::ConversationManager;
 use crate::traits::{AiServiceTrait, ChatStreamResponse};
 
+/// OpenAI API 封装服务。
+///
+/// 提供与 OpenAI 兼容 API 的交互功能，支持：
+/// - 普通聊天（一次性返回完整回复）
+/// - 流式聊天（打字机效果）
+/// - 多会话管理
+///
+/// # Cloning
+///
+/// `AiService` 实现了 `Clone`，内部使用 `Arc` 共享状态，
+/// 克隆开销很小，可以在多处共享同一实例。
+///
+/// # Example
+///
+/// ```no_run
+/// use aether_matrix::ai_service::AiService;
+/// use aether_matrix::config::Config;
+///
+/// async fn example() {
+///     let config = Config::default();
+///     let service = AiService::new(&config);
+///
+///     // 克隆服务（共享内部状态）
+///     let service_clone = service.clone();
+///
+///     // 发送消息
+///     let reply = service.chat("user-1", "Hello!").await.unwrap();
+/// }
+/// ```
 #[derive(Clone)]
 pub struct AiService {
     inner: Arc<AiServiceInner>,
 }
 
+/// `AiService` 的内部实现。
+///
+/// 使用 `Arc` 包装，支持高效的克隆和共享。
 struct AiServiceInner {
+    /// OpenAI 客户端
     client: Client<OpenAIConfig>,
+    /// 使用的模型名称
     model: String,
+    /// 会话管理器（使用 RwLock 支持并发读写）
     conversation: Arc<RwLock<ConversationManager>>,
 }
 
-/// 流式响应的状态追踪
+/// 流式响应的状态追踪。
+///
+/// 在流式响应过程中累积所有已接收的文本片段，
+/// 允许消费者随时获取当前累积的完整内容。
+///
+/// # Thread Safety
+///
+/// 通常与 `Arc<Mutex<StreamingState>>` 配合使用，
+/// 确保流生产者和消费者之间的安全共享。
+///
+/// # Example
+///
+/// ```
+/// use aether_matrix::ai_service::StreamingState;
+///
+/// let mut state = StreamingState::new();
+/// state.append("Hello");
+/// state.append(" World");
+///
+/// assert_eq!(state.content(), "Hello World");
+/// ```
 #[derive(Default)]
 pub struct StreamingState {
+    /// 累积的完整响应内容
     pub accumulated: String,
 }
 
 impl StreamingState {
+    /// 创建新的空状态。
     pub fn new() -> Self {
         Self::default()
     }
 
-    /// 追加新内容
+    /// 追加新的文本片段。
+    ///
+    /// # Arguments
+    ///
+    /// * `delta` - 新收到的文本片段
     pub fn append(&mut self, delta: &str) {
         self.accumulated.push_str(delta);
     }
 
-    /// 获取当前累积的完整内容
+    /// 获取当前累积的完整内容。
     pub fn content(&self) -> &str {
         &self.accumulated
     }
 }
 
 impl AiService {
+    /// 从配置创建新的 AI 服务实例。
+    ///
+    /// # Arguments
+    ///
+    /// * `config` - 机器人配置，包含 API 密钥、模型等设置
     pub fn new(config: &Config) -> Self {
         let openai_config = OpenAIConfig::new()
             .with_api_key(&config.openai_api_key)
@@ -62,20 +128,37 @@ impl AiService {
         }
     }
 
+    /// 执行普通（非流式）聊天。
+    ///
+    /// 发送用户消息并返回 AI 的完整回复。
+    /// 消息会自动添加到会话历史中。
+    ///
+    /// # Arguments
+    ///
+    /// * `session_id` - 会话标识符，用于隔离不同用户/房间的对话
+    /// * `prompt` - 用户输入的消息内容
+    ///
+    /// # Returns
+    ///
+    /// 成功时返回 AI 的完整回复文本。
+    ///
+    /// # Errors
+    ///
+    /// 当 API 调用失败时返回错误。
     pub async fn chat(&self, session_id: &str, prompt: &str) -> Result<String> {
-        // 添加用户消息到历史
+        // 添加用户消息到历史（使用独立作用域限制锁的生命周期）
         {
             let mut conv = self.inner.conversation.write().await;
             conv.add_user_message(session_id, prompt);
         }
 
-        // 获取完整消息历史
+        // 获取完整消息历史（包含系统提示词）
         let messages = {
             let conv = self.inner.conversation.read().await;
             conv.get_messages(session_id)
         };
 
-        // 调用 API
+        // 构建并发送 API 请求
         let request = CreateChatCompletionRequest {
             model: self.inner.model.clone(),
             messages,
@@ -91,7 +174,7 @@ impl AiService {
             .clone()
             .unwrap_or_default();
 
-        // 添加助手回复到历史
+        // 保存 AI 回复到历史
         {
             let mut conv = self.inner.conversation.write().await;
             conv.add_assistant_message(session_id, &content);
@@ -100,13 +183,39 @@ impl AiService {
         Ok(content)
     }
 
+    /// 重置指定会话的历史记录。
+    ///
+    /// # Arguments
+    ///
+    /// * `session_id` - 要重置的会话标识符
     pub async fn reset_conversation(&self, session_id: &str) {
         let mut conv = self.inner.conversation.write().await;
         conv.reset(session_id);
     }
 
-    /// 流式聊天
-    /// 返回一个共享状态用于追踪累积内容，以及一个 Stream 用于消费
+    /// 执行流式聊天。
+    ///
+    /// 与 [`chat`](AiService::chat) 类似，但返回流式响应，
+    /// 允许实时显示 AI 的输出（打字机效果）。
+    ///
+    /// # Arguments
+    ///
+    /// * `session_id` - 会话标识符
+    /// * `prompt` - 用户输入的消息内容
+    ///
+    /// # Returns
+    ///
+    /// 返回元组 `(state, stream)`：
+    /// - `state`: 共享状态，可随时获取累积的完整内容
+    /// - `stream`: 可消费的流，每次产生一个文本片段
+    ///
+    /// # Errors
+    ///
+    /// 当 API 调用初始化失败时返回错误。
+    ///
+    /// # Note
+    ///
+    /// AI 的完整回复会在流结束时自动保存到会话历史。
     pub async fn chat_stream(&self, session_id: &str, prompt: &str) -> Result<ChatStreamResponse> {
         // 添加用户消息到历史
         {
@@ -130,13 +239,14 @@ impl AiService {
 
         let stream = self.inner.client.chat().create_stream(request).await?;
 
-        // 创建共享状态
+        // 创建共享状态，用于追踪累积内容
         let state = Arc::new(Mutex::new(StreamingState::new()));
         let state_clone = state.clone();
         let conversation = self.inner.conversation.clone();
         let session_id_owned = session_id.to_string();
 
-        // 包装 stream，在消费时更新状态
+        // 包装 stream：在消费时更新共享状态
+        // 流结束时自动保存完整回复到会话历史
         let wrapped_stream = stream.filter_map(move |chunk_result| {
             let state = state_clone.clone();
             let conversation = conversation.clone();
@@ -161,10 +271,10 @@ impl AiService {
                                 .first()
                                 .is_some_and(|c| c.finish_reason.is_some())
                             {
-                                // 保存完整回复到会话历史
+                                // 流结束，保存完整回复到会话历史
                                 let s = state.lock().await;
                                 let content = s.content().to_string();
-                                drop(s); // 释放锁
+                                drop(s); // 显式释放锁
                                 let mut conv = conversation.write().await;
                                 conv.add_assistant_message(&session_id_owned, &content);
                             }
