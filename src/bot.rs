@@ -7,6 +7,7 @@ use tracing::info;
 use crate::ai_service::AiService;
 use crate::config::Config;
 use crate::event_handler::{EventHandler, handle_invite};
+use crate::store::{Database, PersonaStore};
 
 /// Matrix AI 机器人
 pub struct Bot {
@@ -55,11 +56,28 @@ impl Bot {
             .ok_or_else(|| anyhow::anyhow!("登录后无法获取用户ID"))?;
         info!("登录成功: {}", user_id);
 
+        // 初始化数据库
+        let persona_store = match Database::new(&config.db_path) {
+            Ok(db) => {
+                info!("数据库初始化成功: {}", config.db_path);
+                let store = PersonaStore::new(db.conn().clone());
+                // 初始化内置人设
+                if let Err(e) = store.init_builtin_personas() {
+                    tracing::warn!("初始化内置人设失败: {}", e);
+                }
+                Some(store)
+            }
+            Err(e) => {
+                tracing::warn!("数据库初始化失败，Persona 功能将不可用: {}", e);
+                None
+            }
+        };
+
         // 创建 AI 服务
         let ai_service = AiService::new(&config);
 
         // 创建事件处理器
-        let handler = EventHandler::new(ai_service, user_id.to_owned(), &config);
+        let handler = EventHandler::new(ai_service, user_id.to_owned(), &config, persona_store);
 
         Ok(Self { client, handler })
     }

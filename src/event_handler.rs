@@ -18,6 +18,8 @@ use tracing::{debug, info, warn};
 use crate::command::CommandGateway;
 use crate::config::Config;
 use crate::modules::admin::{BotInfoHandler, BotLeaveHandler, BotPingHandler};
+use crate::modules::persona::PersonaHandler;
+use crate::store::PersonaStore;
 use crate::traits::AiServiceTrait;
 
 /// 处理房间邀请（独立函数，不依赖 EventHandler 实例）
@@ -56,7 +58,7 @@ pub struct EventHandler<T: AiServiceTrait> {
 }
 
 impl<T: AiServiceTrait> EventHandler<T> {
-    pub fn new(ai_service: T, bot_user_id: OwnedUserId, config: &Config) -> Self {
+    pub fn new(ai_service: T, bot_user_id: OwnedUserId, config: &Config, persona_store: Option<PersonaStore>) -> Self {
         let mut command_gateway = CommandGateway::new(
             config.command_prefix.clone(),
             config.bot_owners.clone(),
@@ -66,6 +68,11 @@ impl<T: AiServiceTrait> EventHandler<T> {
         command_gateway.register(Arc::new(BotInfoHandler));
         command_gateway.register(Arc::new(BotLeaveHandler));
         command_gateway.register(Arc::new(BotPingHandler));
+
+        // 注册 Persona 命令处理器（如果有 PersonaStore）
+        if let Some(store) = persona_store {
+            command_gateway.register(Arc::new(PersonaHandler::new(store)));
+        }
 
         Self {
             ai_service,
@@ -376,7 +383,7 @@ mod tests {
             proxy: None,
         };
         let bot_user_id = user_id!("@bot:matrix.org").to_owned();
-        EventHandler::new(MockAiService, bot_user_id, &config)
+        EventHandler::new(MockAiService, bot_user_id, &config, None)
     }
 
     #[test]
