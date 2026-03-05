@@ -49,6 +49,7 @@ dependencies = [
  "async-openai",
  "dotenvy",
  "futures-util",
+ "lazy_static",
  "matrix-sdk",
  "mockall",
  "serde",
