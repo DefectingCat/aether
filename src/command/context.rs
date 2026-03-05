@@ -3,6 +3,8 @@
 use matrix_sdk::{Client, Room};
 use matrix_sdk::ruma::{OwnedEventId, OwnedUserId};
 
+use super::gateway::CommandGateway;
+
 /// 命令执行上下文
 pub struct CommandContext<'a> {
     /// Matrix 客户端
@@ -21,6 +23,8 @@ pub struct CommandContext<'a> {
     pub event_id: OwnedEventId,
     /// Bot 所有者列表
     pub bot_owners: &'a [String],
+    /// 命令网关（可选，用于热更新）
+    pub gateway: Option<&'a CommandGateway>,
 }
 
 impl<'a> CommandContext<'a> {
@@ -44,6 +48,32 @@ impl<'a> CommandContext<'a> {
             raw_msg,
             event_id,
             bot_owners,
+            gateway: None,
+        }
+    }
+
+    /// 创建带网关的命令上下文
+    pub fn with_gateway(
+        client: &'a Client,
+        room: Room,
+        sender: OwnedUserId,
+        cmd: &'a str,
+        args: Vec<&'a str>,
+        raw_msg: &'a str,
+        event_id: OwnedEventId,
+        bot_owners: &'a [String],
+        gateway: &'a CommandGateway,
+    ) -> Self {
+        Self {
+            client,
+            room,
+            sender,
+            cmd,
+            args,
+            raw_msg,
+            event_id,
+            bot_owners,
+            gateway: Some(gateway),
         }
     }
 

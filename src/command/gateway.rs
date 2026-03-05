@@ -1,6 +1,6 @@
 //! 命令路由核心
 
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 
 use anyhow::Result;
 use matrix_sdk::Room;
@@ -15,8 +15,8 @@ use crate::ui;
 /// 命令网关，负责路由分发
 #[derive(Clone)]
 pub struct CommandGateway {
-    /// 命令解析器
-    parser: Parser,
+    /// 命令解析器（使用 RwLock 支持热更新）
+    parser: Arc<RwLock<Parser>>,
     /// 命令注册表（使用 Arc 支持共享）
     registry: Arc<CommandRegistry>,
     /// Bot 所有者列表
@@ -27,7 +27,7 @@ impl CommandGateway {
     /// 创建新的命令网关
     pub fn new(prefix: String, bot_owners: Vec<String>) -> Self {
         Self {
-            parser: Parser::new(prefix),
+            parser: Arc::new(RwLock::new(Parser::new(prefix))),
             registry: Arc::new(CommandRegistry::new()),
             bot_owners,
         }
@@ -41,19 +41,14 @@ impl CommandGateway {
         self.registry = Arc::new(registry);
     }
 
-    /// 获取命令解析器
-    pub fn parser(&self) -> &Parser {
-        &self.parser
-    }
-
-    /// 获取命令解析器（可变）
-    pub fn parser_mut(&mut self) -> &mut Parser {
-        &mut self.parser
+    /// 设置命令前缀（热更新）
+    pub fn set_prefix(&self, prefix: String) {
+        self.parser.write().unwrap().set_prefix(prefix);
     }
 
     /// 检查消息是否是命令
     pub fn is_command(&self, msg: &str) -> bool {
-        self.parser.is_command(msg)
+        self.parser.read().unwrap().is_command(msg)
     }
 
     /// 分发命令
@@ -66,7 +61,7 @@ impl CommandGateway {
         event_id: OwnedEventId,
     ) -> Result<()> {
         // 解析命令
-        let parsed = match self.parser.parse(msg) {
+        let parsed = match self.parser.read().unwrap().parse(msg) {
             Some(p) => p,
             None => return Ok(()),
         };
@@ -142,11 +137,16 @@ mod tests {
     }
 
     #[test]
-    fn test_gateway_parser() {
-        let mut gateway = CommandGateway::new("!".to_string(), vec![]);
-        gateway.parser_mut().set_prefix("!!".to_string());
-
+    fn test_gateway_prefix_update() {
+        let gateway = CommandGateway::new("!".to_string(), vec![]);
+        assert!(gateway.is_command("!help"));
+        // 注意: "!!help" 也以 "!" 开头，所以 is_command 返回 true
         assert!(gateway.is_command("!!help"));
+
+        // 热更新前缀
+        gateway.set_prefix("!!".to_string());
+        assert!(gateway.is_command("!!help"));
+        // "!help" 不以 "!!" 开头
         assert!(!gateway.is_command("!help"));
     }
 }

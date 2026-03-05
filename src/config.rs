@@ -20,6 +20,7 @@ pub struct Config {
     pub command_prefix: String,
     pub max_history: usize,
     pub bot_owners: Vec<String>,
+    pub db_path: String,
 
     // 流式输出配置
     pub streaming_enabled: bool,
@@ -49,6 +50,7 @@ impl Default for Config {
             command_prefix: "!".to_string(),
             max_history: 10,
             bot_owners: Vec::new(),
+            db_path: "./data/aether.db".to_string(),
             streaming_enabled: true,
             streaming_min_interval_ms: 1000,
             streaming_min_chars: 50,
@@ -124,6 +126,8 @@ impl Config {
                 .ok()
                 .map(|s| s.split(',').map(|s| s.trim().to_string()).collect())
                 .unwrap_or_default(),
+            db_path: std::env::var("DB_PATH")
+                .unwrap_or_else(|_| "./data/aether.db".to_string()),
             // 流式输出配置
             streaming_enabled: std::env::var("STREAMING_ENABLED")
                 .ok()

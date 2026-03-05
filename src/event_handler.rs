@@ -115,7 +115,7 @@ impl<T: AiServiceTrait> EventHandler<T> {
         // 检查是否是命令（以命令前缀开头）
         let is_command = self.command_gateway.is_command(text);
 
-        info!("收到消息: '{}', 命令前缀: '{}', 是否命令: {}", text, self.command_gateway.parser().prefix(), is_command);
+        info!("收到消息: '{}', 是否命令: {}", text, is_command);
 
         // 处理命令
         if is_command {
@@ -368,6 +368,7 @@ mod tests {
             command_prefix: "!".to_string(),
             max_history: 10,
             bot_owners: Vec::new(),
+            db_path: "./data/aether.db".to_string(),
             streaming_enabled: false,
             streaming_min_interval_ms: 500,
             streaming_min_chars: 10,
