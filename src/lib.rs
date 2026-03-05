@@ -22,11 +22,14 @@
 
 pub mod ai_service;
 pub mod bot;
+pub mod command;
 pub mod config;
 pub mod conversation;
 pub mod event_handler;
 pub mod media;
+pub mod modules;
+pub mod store;
 pub mod traits;
+pub mod ui;
 
-// 重新导出常用类型，方便测试使用
 pub use traits::ChatStreamResponse;

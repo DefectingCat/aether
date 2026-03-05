@@ -98,6 +98,8 @@ fn create_test_config() -> Config {
         system_prompt: None,
         command_prefix: "!ai".to_string(),
         max_history: 10,
+        bot_owners: vec![],
+        db_path: "./data/aether.db".to_string(),
         streaming_enabled: false,
         streaming_min_interval_ms: 500,
         streaming_min_chars: 10,
@@ -105,6 +107,7 @@ fn create_test_config() -> Config {
         vision_enabled: true,
         vision_model: None,
         vision_max_image_size: 1024,
+        proxy: None,
     }
 }
 

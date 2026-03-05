@@ -7,6 +7,7 @@ use tracing::info;
 use crate::ai_service::AiService;
 use crate::config::Config;
 use crate::event_handler::{EventHandler, handle_invite};
+use crate::store::{Database, PersonaStore};
 
 /// Matrix AI 机器人主结构体。
 ///
@@ -58,12 +59,18 @@ impl Bot {
     /// - 登录失败
     /// - 获取用户 ID 失败
     pub async fn new(config: Config) -> Result<Self> {
-        // 创建 Matrix 客户端，配置服务器地址和持久化存储
-        let client = Client::builder()
+        // 创建 Matrix 客户端
+        let mut client_builder = Client::builder()
             .homeserver_url(&config.matrix_homeserver)
-            .sqlite_store(&config.store_path, None)
-            .build()
-            .await?;
+            .sqlite_store(&config.store_path, None);
+
+        // 配置代理
+        if let Some(proxy_url) = &config.proxy {
+            info!("使用代理: {}", proxy_url);
+            client_builder = client_builder.proxy(proxy_url);
+        }
+
+        let client = client_builder.build().await?;
 
         // 检查是否已有有效会话（避免重复登录）
         if client.session_meta().is_some() {
@@ -90,11 +97,31 @@ impl Bot {
             .ok_or_else(|| anyhow::anyhow!("登录后无法获取用户ID"))?;
         info!("登录成功: {}", user_id);
 
-        // 创建 AI 服务实例
+// 初始化数据库
+        let persona_store = match Database::new(&config.db_path) {
+            Ok(db) => {
+                info!("数据库初始化成功: {}", config.db_path);
+                let store = PersonaStore::new(db.conn().clone());
+                if let Err(e) = store.init_builtin_personas() {
+                    tracing::warn!("初始化内置人设失败: {}", e);
+                }
+                Some(store)
+            }
+            Err(e) => {
+                tracing::warn!("数据库初始化失败，Persona 功能将不可用: {}", e);
+                None
+            }
+        };
+
         let ai_service = AiService::new(&config);
 
-        // 创建事件处理器（传递 client 用于下载媒体）
-        let handler = EventHandler::new(ai_service, user_id.to_owned(), client.clone(), &config);
+        let handler = EventHandler::new(
+            ai_service,
+            user_id.to_owned(),
+            client.clone(),
+            &config,
+            persona_store,
+        );
 
         Ok(Self { client, handler })
     }
@@ -130,11 +157,13 @@ impl Bot {
         // 注册消息事件处理器：处理用户消息
         self.client.add_event_handler({
             let handler = self.handler;
+            let client = self.client.clone();
             move |ev: matrix_sdk::ruma::events::room::message::SyncRoomMessageEvent,
                   room: matrix_sdk::Room| {
                 let handler = handler.clone();
+                let client = client.clone();
                 async move {
-                    if let Err(e) = handler.handle_message(ev, room).await {
+                    if let Err(e) = handler.handle_message(ev, room, client).await {
                         tracing::error!("处理消息失败: {}", e);
                     }
                 }

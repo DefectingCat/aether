@@ -1,10 +1,14 @@
 mod ai_service;
 mod bot;
+mod command;
 mod config;
 mod conversation;
 mod event_handler;
 mod media;
+mod modules;
+mod store;
 mod traits;
+mod ui;
 
 use anyhow::Result;
 use tracing::info;

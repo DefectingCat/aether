@@ -89,6 +89,8 @@ pub struct Config {
     /// 每个会话保留的最大对话轮数（一轮 = 一问一答）。
     /// 超出限制时会自动丢弃最早的历史。
     pub max_history: usize,
+    pub bot_owners: Vec<String>,
+    pub db_path: String,
 
     // --- 流式输出配置 ---
     /// 是否启用流式输出。
@@ -129,6 +131,9 @@ pub struct Config {
     /// 超过此尺寸的图片会被自动缩放，以避免 API 限制和减少处理时间。
     /// 保持宽高比，将图片缩放到最大边不超过此值。
     pub vision_max_image_size: u32,
+
+    // 代理配置
+    pub proxy: Option<String>,
 }
 
 /// 为 `Config` 提供合理的默认值。
@@ -148,8 +153,10 @@ impl Default for Config {
             openai_base_url: "https://api.openai.com/v1".to_string(),
             openai_model: "gpt-4o-mini".to_string(),
             system_prompt: None,
-            command_prefix: "!ai".to_string(),
+            command_prefix: "!".to_string(),
             max_history: 10,
+            bot_owners: Vec::new(),
+            db_path: "./data/aether.db".to_string(),
             streaming_enabled: true,
             streaming_min_interval_ms: 1000,
             streaming_min_chars: 50,
@@ -159,6 +166,7 @@ impl Default for Config {
             vision_enabled: true,
             vision_model: None,
             vision_max_image_size: 1024,
+            proxy: None,
         }
     }
 }
@@ -273,12 +281,16 @@ impl Config {
             openai_model: std::env::var("OPENAI_MODEL")
                 .unwrap_or_else(|_| "gpt-4o-mini".to_string()),
             system_prompt: std::env::var("SYSTEM_PROMPT").ok(),
-            command_prefix: std::env::var("BOT_COMMAND_PREFIX")
-                .unwrap_or_else(|_| "!ai".to_string()),
+            command_prefix: std::env::var("BOT_COMMAND_PREFIX").unwrap_or_else(|_| "!".to_string()),
             max_history: std::env::var("MAX_HISTORY")
                 .ok()
                 .and_then(|s| s.parse().ok())
                 .unwrap_or(10),
+            bot_owners: std::env::var("BOT_OWNERS")
+                .ok()
+                .map(|s| s.split(',').map(|s| s.trim().to_string()).collect())
+                .unwrap_or_default(),
+            db_path: std::env::var("DB_PATH").unwrap_or_else(|_| "./data/aether.db".to_string()),
             // 流式输出配置
             streaming_enabled: std::env::var("STREAMING_ENABLED")
                 .ok()
@@ -304,6 +316,8 @@ impl Config {
                 .ok()
                 .and_then(|s| s.parse().ok())
                 .unwrap_or(1024),
+            // 代理配置
+            proxy: std::env::var("PROXY").ok(),
         })
     }
 }
@@ -537,7 +551,7 @@ mod tests {
         assert_eq!(config.openai_base_url, "https://api.openai.com/v1");
         assert_eq!(config.openai_model, "gpt-4o-mini");
         assert_eq!(config.system_prompt, None);
-        assert_eq!(config.command_prefix, "!ai");
+        assert_eq!(config.command_prefix, "!");
         assert_eq!(config.max_history, 10);
         assert!(config.streaming_enabled);
         assert_eq!(config.streaming_min_interval_ms, 1000);
