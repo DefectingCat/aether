@@ -1,9 +1,9 @@
-use anyhow::Result;
 use aether_matrix::traits::MessageSender;
+use anyhow::Result;
 use matrix_sdk::ruma::OwnedEventId;
 use std::sync::Arc;
-use tokio::sync::Mutex;
 use std::sync::atomic::{AtomicU64, Ordering};
+use tokio::sync::Mutex;
 
 #[derive(Clone)]
 pub struct MockRoom {

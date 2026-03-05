@@ -16,12 +16,7 @@ pub enum Permission {
 
 impl Permission {
     /// 检查用户是否具有此权限
-    pub async fn check(
-        &self,
-        room: &Room,
-        user_id: &OwnedUserId,
-        bot_owners: &[String],
-    ) -> bool {
+    pub async fn check(&self, room: &Room, user_id: &OwnedUserId, bot_owners: &[String]) -> bool {
         match self {
             Permission::Anyone => true,
             Permission::RoomMod => {
@@ -31,7 +26,11 @@ impl Permission {
                 }
                 // 检查用户是否是房间成员
                 // get_member 返回 Option<RoomMember>，如果用户是成员则返回 Some
-                room.get_member(user_id.as_ref()).await.ok().flatten().is_some()
+                room.get_member(user_id.as_ref())
+                    .await
+                    .ok()
+                    .flatten()
+                    .is_some()
             }
             Permission::BotOwner => {
                 // 检查用户是否是 Bot 所有者

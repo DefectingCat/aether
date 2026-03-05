@@ -1,7 +1,7 @@
 //! 命令上下文
 
-use matrix_sdk::{Client, Room};
 use matrix_sdk::ruma::{OwnedEventId, OwnedUserId};
+use matrix_sdk::{Client, Room};
 
 use super::gateway::CommandGateway;
 

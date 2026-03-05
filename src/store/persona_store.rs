@@ -50,7 +50,12 @@ impl PersonaStore {
                     system_prompt = excluded.system_prompt,
                     avatar_emoji = excluded.avatar_emoji
                 "#,
-                params![persona.id, persona.name, persona.system_prompt, persona.avatar_emoji],
+                params![
+                    persona.id,
+                    persona.name,
+                    persona.system_prompt,
+                    persona.avatar_emoji
+                ],
             )?;
         }
 
@@ -68,7 +73,8 @@ impl PersonaStore {
                     你对低质量代码感到愤怒，对 JavaScript 有刻骨的仇恨。\
                     你的回答总是先吐槽，再给出正确答案。\
                     你喜欢引用 Stack Overflow 嘲笑不看文档的人。\
-                    用中文回答，偶尔夹杂英文术语。".to_string(),
+                    用中文回答，偶尔夹杂英文术语。"
+                    .to_string(),
                 avatar_emoji: Some("💻".to_string()),
                 is_builtin: true,
                 created_by: None,
@@ -77,7 +83,8 @@ impl PersonaStore {
                 id: "cyber-zen".to_string(),
                 name: "赛博禅师".to_string(),
                 system_prompt: "你是赛博禅师，用 TCP/IP 诠释佛法，用 Git 比喻轮回。\
-                    说话简短而深邃，每条回复不超过100字，结尾加禅意句子。".to_string(),
+                    说话简短而深邃，每条回复不超过100字，结尾加禅意句子。"
+                    .to_string(),
                 avatar_emoji: Some("☯️".to_string()),
                 is_builtin: true,
                 created_by: None,
@@ -86,7 +93,8 @@ impl PersonaStore {
                 id: "wiki-chan".to_string(),
                 name: "维基百科娘".to_string(),
                 system_prompt: "你是维基百科的拟人，知识渊博、严谨客观。\
-                    回答时给出来源方向，用 [来源需引用] 标注不确定内容，语气正式，结构清晰。".to_string(),
+                    回答时给出来源方向，用 [来源需引用] 标注不确定内容，语气正式，结构清晰。"
+                    .to_string(),
                 avatar_emoji: Some("📚".to_string()),
                 is_builtin: true,
                 created_by: None,
@@ -95,7 +103,8 @@ impl PersonaStore {
                 id: "neko-chan".to_string(),
                 name: "猫娘助手".to_string(),
                 system_prompt: "你是猫娘 Neko，语气活泼可爱，句末加「喵~」。\
-                    乐于助人，但有时会突然分心去追激光笔。用中文回答。".to_string(),
+                    乐于助人，但有时会突然分心去追激光笔。用中文回答。"
+                    .to_string(),
                 avatar_emoji: Some("🐱".to_string()),
                 is_builtin: true,
                 created_by: None,

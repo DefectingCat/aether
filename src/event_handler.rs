@@ -1,3 +1,18 @@
+//! Matrix 事件处理模块。
+//!
+//! 处理两类 Matrix 事件：
+//! - **邀请事件**: 自动接受房间邀请（[`handle_invite`]）
+//! - **消息事件**: 处理用户消息并调用 AI 服务（[`EventHandler`]）
+//!
+//! # 消息处理流程
+//!
+//! 1. 过滤自己发送的消息
+//! 2. 识别消息类型（命令/提及/普通消息）
+//! 3. 根据房间类型决定响应策略：
+//!    - 私聊：总是响应
+//!    - 群聊：仅在提及或命令时响应
+//! 4. 调用 AI 服务（普通/流式/Vision）
+
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
@@ -24,7 +39,34 @@ use crate::store::PersonaStore;
 use crate::traits::AiServiceTrait;
 use matrix_sdk::ruma::events::room::message::MessageType;
 
-/// 处理房间邀请（独立函数，不依赖 EventHandler 实例）
+/// 处理房间邀请（独立函数，不依赖 EventHandler 实例）。
+///
+/// 当机器人收到房间邀请时自动加入，支持私聊和群聊场景。
+///
+/// # Arguments
+///
+/// * `ev` - Matrix 邀请事件
+/// * `client` - Matrix 客户端实例
+/// * `room` - 邀请的房间实例
+///
+/// # Returns
+///
+/// 成功时返回 `Ok(())`，失败时返回错误。
+///
+/// # Example
+///
+/// ```ignore
+/// use aether_matrix::event_handler::handle_invite;
+///
+/// // 注册为事件处理器
+/// client.add_event_handler(
+///     |ev: StrippedRoomMemberEvent, client: Client, room: Room| async move {
+///         if let Err(e) = handle_invite(ev, client, room).await {
+///             tracing::error!("处理邀请失败: {}", e);
+///         }
+///     }
+/// );
+/// ```
 pub async fn handle_invite(ev: StrippedRoomMemberEvent, client: Client, room: Room) -> Result<()> {
     if ev.content.membership != MembershipState::Invite {
         return Ok(());
@@ -48,6 +90,34 @@ pub async fn handle_invite(ev: StrippedRoomMemberEvent, client: Client, room: Ro
 }
 
 #[derive(Clone)]
+/// Matrix 消息事件处理器。
+///
+/// 泛型参数 `T` 支持任意实现 [`AiServiceTrait`] 的服务，
+/// 便于测试和替换 AI 实现。
+///
+/// # 职责
+///
+/// - 消息路由：识别命令、提及、普通消息
+/// - AI 响应：调用 AI 服务并处理响应（普通/流式/Vision）
+/// - 错误处理：优雅处理 AI 服务错误
+///
+/// # Example
+///
+/// ```ignore
+/// use aether_matrix::event_handler::EventHandler;
+/// use aether_matrix::ai_service::AiService;
+///
+/// let handler = EventHandler::new(
+///     ai_service,
+///     bot_user_id,
+///     client,
+///     &config,
+///     persona_store,
+/// );
+///
+/// // 注册为事件处理器
+/// client.add_event_handler(handler);
+/// ```
 pub struct EventHandler<T: AiServiceTrait> {
     ai_service: T,
     client: Client,
@@ -63,6 +133,25 @@ pub struct EventHandler<T: AiServiceTrait> {
 }
 
 impl<T: AiServiceTrait> EventHandler<T> {
+    /// 创建新的事件处理器实例。
+    ///
+    /// 初始化时会注册以下命令处理器：
+    /// - [`BotInfoHandler`]\: 显示机器人信息
+    /// - [`BotLeaveHandler`]\: 机器人离开房间
+    /// - [`BotPingHandler`]\: Ping 测试
+    /// - [`PersonaHandler`]\: 人设管理（如果数据库可用）
+    ///
+    /// # Arguments
+    ///
+    /// * `ai_service` - AI 服务实例
+    /// * `bot_user_id` - 机器人的 Matrix 用户 ID
+    /// * `client` - Matrix 客户端实例
+    /// * `config` - 机器人配置
+    /// * `persona_store` - 人设存储（可选）
+    ///
+    /// # Returns
+    ///
+    /// 返回初始化完成的事件处理器实例。
     pub fn new(
         ai_service: T,
         bot_user_id: OwnedUserId,
@@ -70,10 +159,8 @@ impl<T: AiServiceTrait> EventHandler<T> {
         config: &Config,
         persona_store: Option<PersonaStore>,
     ) -> Self {
-        let mut command_gateway = CommandGateway::new(
-            config.command_prefix.clone(),
-            config.bot_owners.clone(),
-        );
+        let mut command_gateway =
+            CommandGateway::new(config.command_prefix.clone(), config.bot_owners.clone());
 
         command_gateway.register(Arc::new(BotInfoHandler));
         command_gateway.register(Arc::new(BotLeaveHandler));
@@ -98,20 +185,50 @@ impl<T: AiServiceTrait> EventHandler<T> {
         }
     }
 
-    /// 处理消息
+    /// 处理 Matrix 房间消息事件。
+    ///
+    /// 根据消息类型和房间类型决定响应策略：
+    /// - **命令消息**: 分发给命令处理器
+    /// - **提及消息**: 调用 AI 服务响应
+    /// - **图片消息**: 调用 Vision API 分析
+    ///
+    /// # 响应策略
+    ///
+    /// | 房间类型 | 响应条件 |
+    /// |---------|---------|
+    /// | 私聊 | 总是响应 |
+    /// | 群聊 | 命令前缀 / @提及 / Intentional Mentions |
+    ///
+    /// # Arguments
+    ///
+    /// * `ev` - Matrix 消息事件
+    /// * `room` - 房间实例
+    /// * `client` - Matrix 客户端
+    ///
+    /// # Returns
+    ///
+    /// 成功时返回 `Ok(())`，失败时返回错误。
+    ///
+    /// # Errors
+    ///
+    /// 当以下情况发生时返回错误：
+    /// - 命令分发失败
+    /// - AI 服务调用失败
+    /// - Matrix API 调用失败
     pub async fn handle_message(
         &self,
         ev: matrix_sdk::ruma::events::room::message::SyncRoomMessageEvent,
         room: Room,
         client: Client,
     ) -> Result<()> {
-        // 使用 as_original() 获取原始消息事件
+        // Matrix SDK 的 SyncRoomMessageEvent 可能包含编辑/删除等衍生事件
+        // 使用 as_original() 获取原始消息，过滤掉衍生事件
         let original = match ev.as_original() {
             Some(o) => o,
-            None => return Ok(()), // 忽略已删除的消息
+            None => return Ok(()), // 忽略已删除或编辑后的消息
         };
 
-        // 跳过自己发送的消息
+        // 跳过自己发送的消息，避免消息循环
         if original.sender == self.bot_user_id {
             return Ok(());
         }
@@ -125,7 +242,8 @@ impl<T: AiServiceTrait> EventHandler<T> {
         // 判断是否应该响应
         let is_direct = room.is_direct().await.unwrap_or(false);
 
-        // 检查是否通过 Intentional Mentions (MSC 3456) 被提及
+        // MSC 3456 (Intentional Mentions) 是现代 Matrix 客户端推荐的提及方式
+        // 相比文本匹配 @user_id，mentions 字段更精确且支持富文本
         let mentions_bot = original
             .content
             .mentions
@@ -137,10 +255,9 @@ impl<T: AiServiceTrait> EventHandler<T> {
 
         info!("收到消息: '{}', 是否命令: {}", text, is_command);
 
-        // 处理命令
+        // 处理命令：优先分发命令，避免命令被当作普通消息处理
         if is_command {
             info!("分发命令: {}", text);
-            // 尝试通过命令网关分发
             self.command_gateway
                 .dispatch(
                     &client,
@@ -153,12 +270,15 @@ impl<T: AiServiceTrait> EventHandler<T> {
             return Ok(());
         }
 
-        // 非命令消息：检查是否应该响应 AI
+        // 响应策略：私聊总是响应，群聊需要明确的触发条件
+        // 私聊场景：用户体验优先，避免用户需要手动提及
+        // 群聊场景：避免机器人刷屏，仅在明确触发时响应
         let should_respond = if is_direct {
-            // 私聊：总是响应
             true
         } else {
-            // 房间：检查文本中的 user_id（兼容旧客户端）或 mentions 字段（现代客户端）
+            // 兼容两种提及方式：
+            // 1. 文本包含 @user_id（旧客户端，部分 Matrix 客户端）
+            // 2. mentions 字段（现代客户端，推荐方式）
             text.contains(&self.bot_user_id.to_string()) || mentions_bot
         };
 
@@ -166,6 +286,9 @@ impl<T: AiServiceTrait> EventHandler<T> {
             return Ok(());
         }
 
+        // 会话隔离策略：
+        // - 私聊：按用户 ID 隔离，每个用户有独立的对话历史
+        // - 群聊：按房间 ID 隔离，房间内所有用户共享历史
         let session_id = if is_direct {
             original.sender.to_string()
         } else {
@@ -203,7 +326,7 @@ impl<T: AiServiceTrait> EventHandler<T> {
                         .await?;
                 }
             }
-            MessageType::Image(image_msg) if self.vision_enabled => {
+MessageType::Image(image_msg) if self.vision_enabled => {
                 debug!("处理图片消息 [{}]", session_id);
                 match self.handle_image_message(&room, &session_id, image_msg, system_prompt.as_deref()).await {
                     Ok(_) => {}
@@ -215,6 +338,8 @@ impl<T: AiServiceTrait> EventHandler<T> {
                         )))
                         .await?;
                     }
+                }
+            }
                 }
             }
             _ => {}
@@ -237,13 +362,9 @@ impl<T: AiServiceTrait> EventHandler<T> {
             }
         };
 
-        let image_data_url = download_image_as_base64(
-            &self.client,
-            mxc_uri,
-            None,
-            self.vision_max_image_size,
-        )
-        .await?;
+        let image_data_url =
+            download_image_as_base64(&self.client, mxc_uri, None, self.vision_max_image_size)
+                .await?;
 
         let prompt = image_msg.body.clone();
         let reply = self
@@ -281,7 +402,32 @@ impl<T: AiServiceTrait> EventHandler<T> {
         Ok(())
     }
 
-    /// 流式响应（打字机效果）
+    /// 流式响应处理（打字机效果）。
+    ///
+    /// 使用混合节流策略控制消息更新频率，平衡用户体验和 API 调用开销：
+    /// - **时间触发**: 超过 `streaming_min_interval` 时更新
+    /// - **字符触发**: 累积超过 `streaming_min_chars` 时更新
+    ///
+    /// # 消息更新机制
+    ///
+    /// 1. 首次发送新消息
+    /// 2. 后续使用 Matrix 消息编辑 API 更新内容
+    /// 3. 流结束时发送最终版本
+    ///
+    /// # Error Handling
+    ///
+    /// 流中途出错时，会在已发送内容后追加错误信息，
+    /// 避免用户看到突然中断的消息。
+    ///
+    /// # Arguments
+    ///
+    /// * `room` - Matrix 房间实例
+    /// * `session_id` - 会话标识符
+    /// * `clean_text` - 清理后的用户消息（已移除命令前缀和提及）
+    ///
+    /// # Returns
+    ///
+    /// 成功时返回 `Ok(())`，失败时返回错误。
     async fn handle_streaming_response(
         &self,
         room: &Room,
@@ -314,7 +460,9 @@ impl<T: AiServiceTrait> EventHandler<T> {
                 Ok(delta) => {
                     chars_since_update += delta.chars().count();
 
-                    // 检查是否需要更新消息（混合策略）
+                    // 混合节流策略：避免过于频繁的消息编辑 API 调用
+                    // 时间触发：保证最小更新间隔，避免刷屏
+                    // 字符触发：在快速输出时提前更新，提升用户体验
                     let time_elapsed = last_update.elapsed() >= self.streaming_min_interval;
                     let chars_accumulated = chars_since_update >= self.streaming_min_chars;
 
@@ -327,14 +475,14 @@ impl<T: AiServiceTrait> EventHandler<T> {
 
                         // 发送或编辑消息
                         if let Some(ref original_event_id) = event_id {
-                            // 编辑已有消息
+                            // 编辑已有消息：使用 Matrix 消息编辑功能
                             let metadata =
                                 ReplacementMetadata::new(original_event_id.clone(), None);
                             let msg_content = RoomMessageEventContent::text_plain(&content)
                                 .make_replacement(metadata);
                             room.send(msg_content).await?;
                         } else {
-                            // 发送新消息
+                            // 发送新消息：首次响应
                             let response = room
                                 .send(RoomMessageEventContent::text_plain(&content))
                                 .await?;
@@ -348,13 +496,14 @@ impl<T: AiServiceTrait> EventHandler<T> {
                 }
                 Err(e) => {
                     warn!("流式响应错误: {}", e);
-                    // 如果已经发送了一些内容，显示错误
+                    // 错误处理：在已发送内容后追加错误信息，保持上下文连续性
                     let content = {
                         let s = state.lock().await;
                         s.content().to_string()
                     };
 
                     if !content.is_empty() {
+                        // 已有部分内容，追加错误信息
                         let error_msg = format!("{}\n\n[错误: {}]", content, e);
                         if let Some(ref original_event_id) = event_id {
                             let metadata =
@@ -367,6 +516,7 @@ impl<T: AiServiceTrait> EventHandler<T> {
                                 .await?;
                         }
                     } else {
+                        // 无内容，仅显示错误
                         room.send(RoomMessageEventContent::text_plain(format!(
                             "AI 服务暂时不可用: {}",
                             e
@@ -378,7 +528,8 @@ impl<T: AiServiceTrait> EventHandler<T> {
             }
         }
 
-        // 流结束，发送最终消息（如果有残留内容）
+        // 流结束，发送最终消息
+        // 注意：仅在事件 ID 存在时编辑，避免重复发送
         let final_content = {
             let s = state.lock().await;
             s.content().to_string()
@@ -397,15 +548,31 @@ impl<T: AiServiceTrait> EventHandler<T> {
         Ok(())
     }
 
+    /// 清理用户消息，移除命令前缀和提及。
+    ///
+    /// 处理以下情况：
+    /// - 移除命令前缀（如 `!ai`）
+    /// - 移除文本形式的 @user_id 提及
+    /// - 去除首尾空白
+    ///
+    /// # Arguments
+    ///
+    /// * `text` - 原始消息文本
+    ///
+    /// # Returns
+    ///
+    /// 返回清理后的消息文本。
     fn extract_message(&self, text: &str) -> String {
         let mut result = text.to_string();
 
-        // 移除命令前缀
+        // 移除命令前缀：允许用户使用简短的命令语法
+        // 例如：!help 而不是 !ai help
         if result.starts_with(&self.command_prefix) {
             result = result[self.command_prefix.len()..].to_string();
         }
 
-        // 移除 @提及
+        // 移除 @提及：支持文本形式的提及（旧客户端兼容）
+        // 例如：@bot:matrix.org 你好 -> 你好
         result = result.replace(&self.bot_user_id.to_string(), "");
 
         result.trim().to_string()

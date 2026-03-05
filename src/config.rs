@@ -89,7 +89,17 @@ pub struct Config {
     /// 每个会话保留的最大对话轮数（一轮 = 一问一答）。
     /// 超出限制时会自动丢弃最早的历史。
     pub max_history: usize,
+
+    /// 机器人拥有者列表。
+    ///
+    /// 拥有者可以使用管理命令（如 `!leave`）。
+    /// 格式为 Matrix 用户 ID 列表，如 `["@user:matrix.org", "@admin:server.com"]`。
     pub bot_owners: Vec<String>,
+
+    /// 数据库文件路径。
+    ///
+    /// 用于存储 Persona 等持久化数据。
+    /// 默认为 `./data/aether.db`。
     pub db_path: String,
 
     // --- 流式输出配置 ---
@@ -132,7 +142,10 @@ pub struct Config {
     /// 保持宽高比，将图片缩放到最大边不超过此值。
     pub vision_max_image_size: u32,
 
-    // 代理配置
+    /// HTTP 代理 URL（可选）。
+    ///
+    /// 用于通过代理服务器连接 Matrix 和 OpenAI API。
+    /// 格式为 `http://host:port` 或 `socks5://host:port`。
     pub proxy: Option<String>,
 }
 
@@ -227,6 +240,7 @@ impl Config {
     pub fn from_env() -> Result<Self> {
         // 加载 .env 文件（如果存在）
         // 在测试模式下跳过，以便测试可以完全控制环境变量
+        // 避免测试环境受到开发环境 .env 文件的影响
         #[cfg(not(test))]
         match dotenvy::dotenv() {
             Ok(path) => {

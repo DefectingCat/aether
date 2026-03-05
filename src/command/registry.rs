@@ -86,11 +86,7 @@ impl CommandRegistry {
         commands.sort_by_key(|(name, _)| *name);
 
         for (name, handler) in commands {
-            help.push_str(&format!(
-                "**!{}** - {}\n",
-                name,
-                handler.description()
-            ));
+            help.push_str(&format!("**!{}** - {}\n", name, handler.description()));
             if !handler.usage().is_empty() {
                 help.push_str(&format!("  用法: {}\n", handler.usage()));
             }

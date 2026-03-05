@@ -5,7 +5,7 @@ use async_trait::async_trait;
 use matrix_sdk::ruma::events::room::message::RoomMessageEventContent;
 
 use crate::command::{CommandContext, CommandHandler, Permission};
-use crate::ui::{info_card, success, warning, error};
+use crate::ui::{error, info_card, success, warning};
 
 /// Bot 信息命令处理器
 pub struct BotInfoHandler;
@@ -48,7 +48,10 @@ impl BotInfoHandler {
     async fn handle_help(&self, ctx: &CommandContext<'_>) -> Result<()> {
         let items = vec![
             ("!bot info", "查看 Bot 基本信息"),
-            ("!bot name <名称>", "修改 Bot 显示名称（需要 Bot 所有者权限）"),
+            (
+                "!bot name <名称>",
+                "修改 Bot 显示名称（需要 Bot 所有者权限）",
+            ),
             ("!bot avatar <url>", "修改 Bot 头像（需要 Bot 所有者权限）"),
             ("!bot join <房间ID>", "加入指定房间（需要 Bot 所有者权限）"),
             ("!bot rooms", "列出已加入的所有房间（需要 Bot 所有者权限）"),
@@ -89,7 +92,10 @@ impl BotInfoHandler {
 
     async fn handle_name(&self, ctx: &CommandContext<'_>) -> Result<()> {
         // 检查权限 - 需要 BotOwner
-        if !Permission::BotOwner.check(&ctx.room, &ctx.sender, ctx.bot_owners).await {
+        if !Permission::BotOwner
+            .check(&ctx.room, &ctx.sender, ctx.bot_owners)
+            .await
+        {
             let html = error("权限不足: 需要 Bot 所有者权限");
             return send_html(&ctx.room, &html).await;
         }
@@ -122,7 +128,10 @@ impl BotInfoHandler {
 
     async fn handle_rooms(&self, ctx: &CommandContext<'_>) -> Result<()> {
         // 检查权限 - 需要 BotOwner
-        if !Permission::BotOwner.check(&ctx.room, &ctx.sender, ctx.bot_owners).await {
+        if !Permission::BotOwner
+            .check(&ctx.room, &ctx.sender, ctx.bot_owners)
+            .await
+        {
             let html = error("权限不足: 需要 Bot 所有者权限");
             return send_html(&ctx.room, &html).await;
         }
@@ -133,12 +142,17 @@ impl BotInfoHandler {
 
         for room in rooms.iter() {
             let room_id = room.room_id().to_string();
-            let name = room.display_name().await.map(|n| n.to_string()).unwrap_or_else(|_| room_id.clone());
+            let name = room
+                .display_name()
+                .await
+                .map(|n| n.to_string())
+                .unwrap_or_else(|_| room_id.clone());
             rooms_info.push((room_id, name));
         }
 
         // 转换为 (&str, &str) 格式
-        let rooms_info: Vec<(&str, &str)> = rooms_info.iter()
+        let rooms_info: Vec<(&str, &str)> = rooms_info
+            .iter()
             .map(|(id, name)| (id.as_str(), name.as_str()))
             .collect();
 
@@ -148,7 +162,10 @@ impl BotInfoHandler {
 
     async fn handle_join(&self, ctx: &CommandContext<'_>) -> Result<()> {
         // 检查权限 - 需要 BotOwner
-        if !Permission::BotOwner.check(&ctx.room, &ctx.sender, ctx.bot_owners).await {
+        if !Permission::BotOwner
+            .check(&ctx.room, &ctx.sender, ctx.bot_owners)
+            .await
+        {
             let html = error("权限不足: 需要 Bot 所有者权限");
             return send_html(&ctx.room, &html).await;
         }
@@ -184,7 +201,10 @@ impl BotInfoHandler {
 
     async fn handle_prefix(&self, ctx: &CommandContext<'_>) -> Result<()> {
         // 检查权限 - 需要 BotOwner
-        if !Permission::BotOwner.check(&ctx.room, &ctx.sender, ctx.bot_owners).await {
+        if !Permission::BotOwner
+            .check(&ctx.room, &ctx.sender, ctx.bot_owners)
+            .await
+        {
             let html = error("权限不足: 需要 Bot 所有者权限");
             return send_html(&ctx.room, &html).await;
         }
@@ -208,7 +228,10 @@ impl BotInfoHandler {
 
     async fn handle_avatar(&self, ctx: &CommandContext<'_>) -> Result<()> {
         // 检查权限 - 需要 BotOwner
-        if !Permission::BotOwner.check(&ctx.room, &ctx.sender, ctx.bot_owners).await {
+        if !Permission::BotOwner
+            .check(&ctx.room, &ctx.sender, ctx.bot_owners)
+            .await
+        {
             let html = error("权限不足: 需要 Bot 所有者权限");
             return send_html(&ctx.room, &html).await;
         }

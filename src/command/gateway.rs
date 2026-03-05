@@ -89,7 +89,12 @@ impl CommandGateway {
         let permission = handler.permission();
         if !permission.check(&room, &sender, &self.bot_owners).await {
             let html = ui::error(&format!("权限不足: 需要 {}", permission.display_name()));
-            send_html_message(&room, &html, &format!("权限不足: 需要 {}", permission.display_name())).await?;
+            send_html_message(
+                &room,
+                &html,
+                &format!("权限不足: 需要 {}", permission.display_name()),
+            )
+            .await?;
             return Ok(());
         }
 

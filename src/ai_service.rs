@@ -236,6 +236,12 @@ impl AiService {
     /// # Note
     ///
     /// AI 的完整回复会在流结束时自动保存到会话历史。
+    ///
+    /// # State Management
+    ///
+    /// 使用 `Arc<Mutex<StreamingState>>` 实现流生产者和消费者之间的状态共享：
+    /// - 消费者可以从 Stream 读取每个 chunk
+    /// - 同时可以通过 StreamingState 获取当前累积的完整内容
     pub async fn chat_stream(&self, session_id: &str, prompt: &str) -> Result<ChatStreamResponse> {
         // 添加用户消息到历史
         {
@@ -266,7 +272,8 @@ impl AiService {
         let session_id_owned = session_id.to_string();
 
         // 包装 stream：在消费时更新共享状态
-        // 流结束时自动保存完整回复到会话历史
+        // 使用 filter_map 而非 map，以过滤空 delta 和结束标记
+        // 流结束时自动保存完整回复到会话历史，避免消费者手动处理
         let wrapped_stream = stream.filter_map(move |chunk_result| {
             let state = state_clone.clone();
             let conversation = conversation.clone();
@@ -294,7 +301,7 @@ impl AiService {
                                 // 流结束，保存完整回复到会话历史
                                 let s = state.lock().await;
                                 let content = s.content().to_string();
-                                drop(s); // 显式释放锁
+                                drop(s); // 显式释放锁，避免在持有锁时再次获取写锁
                                 let mut conv = conversation.write().await;
                                 conv.add_assistant_message(&session_id_owned, &content);
                             }

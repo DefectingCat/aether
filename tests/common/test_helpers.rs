@@ -1,5 +1,5 @@
-use anyhow::Result;
 use aether_matrix::traits::StreamingState;
+use anyhow::Result;
 use futures_util::{Stream, StreamExt};
 use std::pin::Pin;
 use std::sync::Arc;
@@ -19,7 +19,9 @@ pub fn create_test_stream_with_state(
     }))
 }
 
-pub fn create_error_stream(error_msg: String) -> Pin<Box<dyn Stream<Item = Result<String>> + Send>> {
+pub fn create_error_stream(
+    error_msg: String,
+) -> Pin<Box<dyn Stream<Item = Result<String>> + Send>> {
     use futures_util::stream;
     let msg = error_msg.clone();
     Box::pin(stream::iter(vec![

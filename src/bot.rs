@@ -64,7 +64,7 @@ impl Bot {
             .homeserver_url(&config.matrix_homeserver)
             .sqlite_store(&config.store_path, None);
 
-        // 配置代理
+        // 配置代理（如果需要）
         if let Some(proxy_url) = &config.proxy {
             info!("使用代理: {}", proxy_url);
             client_builder = client_builder.proxy(proxy_url);
@@ -73,6 +73,7 @@ impl Bot {
         let client = client_builder.build().await?;
 
         // 检查是否已有有效会话（避免重复登录）
+        // 使用 SQLite 存储后，会话状态会持久化，重启无需重新登录
         if client.session_meta().is_some() {
             info!("检测到已存在的会话，跳过登录");
         } else {
@@ -84,6 +85,7 @@ impl Bot {
                 .initial_device_display_name(&config.device_display_name);
 
             // 如果配置了设备ID，使用它以保持设备一致性
+            // 避免每次重启都创建新设备，导致设备列表膨胀
             if let Some(device_id) = &config.matrix_device_id {
                 login_builder = login_builder.device_id(device_id.as_str());
                 info!("使用配置的设备ID: {}", device_id);
@@ -97,7 +99,8 @@ impl Bot {
             .ok_or_else(|| anyhow::anyhow!("登录后无法获取用户ID"))?;
         info!("登录成功: {}", user_id);
 
-// 初始化数据库
+        // 初始化数据库和 PersonaStore
+        // 失败时降级运行，仅禁用 Persona 功能，不影响核心 AI 对话
         let persona_store = match Database::new(&config.db_path) {
             Ok(db) => {
                 info!("数据库初始化成功: {}", config.db_path);
@@ -172,7 +175,9 @@ impl Bot {
 
         info!("开始同步...");
 
-        // 创建关闭信号通道（watch 通道可广播关闭状态）
+        // 创建关闭信号通道
+        // 使用 watch channel 而非 mpsc，因为需要广播关闭状态给多个消费者
+        // watch channel 允许多个消费者同时观察同一个值的变化
         let (shutdown_tx, shutdown_rx) = tokio::sync::watch::channel(false);
 
         // 启动信号监听任务（独立线程处理 Ctrl+C）
@@ -193,6 +198,7 @@ impl Bot {
 
         // 开始同步循环
         // 使用回调检查关闭状态，实现优雅退出
+        // 每次同步周期都会检查 shutdown_rx，收到信号后立即停止
         self.client
             .sync_with_result_callback(SyncSettings::new(), move |_result| {
                 let rx = shutdown_rx.clone();

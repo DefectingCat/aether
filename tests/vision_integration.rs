@@ -4,7 +4,7 @@ use aether_matrix::ai_service::AiService;
 use aether_matrix::config::Config;
 use aether_matrix::traits::AiServiceTrait;
 use serde_json::json;
-use wiremock::matchers::{method, path, body_string_contains};
+use wiremock::matchers::{body_string_contains, method, path};
 use wiremock::{Mock, MockServer, ResponseTemplate};
 
 fn create_test_config(api_url: &str) -> Config {
@@ -77,7 +77,7 @@ mod vision_tests {
         let service = AiService::new(&config);
 
         let image_data_url = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
-        
+
         let response = service
             .chat_with_image("session-1", "What's in this image?", image_data_url)
             .await
@@ -113,7 +113,7 @@ mod vision_tests {
         let service = AiService::new(&config);
 
         let image_data_url = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
-        
+
         let response = service
             .chat_with_image("session-1", "What's in this image?", image_data_url)
             .await
@@ -139,7 +139,7 @@ mod vision_tests {
         let service = AiService::new(&config);
 
         let image_data_url = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAn/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBEQACEQA/ALUABo//2Q==";
-        
+
         let response = AiServiceTrait::chat_with_image(
             &service,
             "session-1",
@@ -159,8 +159,7 @@ mod vision_tests {
         Mock::given(method("POST"))
             .and(path("/chat/completions"))
             .respond_with(
-                ResponseTemplate::new(200)
-                    .set_body_json(mock_vision_response("Response")),
+                ResponseTemplate::new(200).set_body_json(mock_vision_response("Response")),
             )
             .mount(&server)
             .await;

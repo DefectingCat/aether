@@ -102,6 +102,11 @@ pub async fn download_image_as_base64(
 /// // 假设 image_data 是有效的图片数据
 /// // let resized = resize_image_if_needed(&image_data, 1024)?;
 /// ```
+///
+/// # Algorithm
+///
+/// 使用 Lanczos3 算法进行高质量缩放，适合照片和复杂图像。
+/// 对于简单的图标或线条图，可能产生轻微的模糊，但整体效果优于其他算法。
 pub fn resize_image_if_needed(image_data: &[u8], max_size: u32) -> Result<Vec<u8>> {
     // 加载图片
     let img = image::load_from_memory(image_data).context("无法解析图片数据")?;
@@ -127,6 +132,8 @@ pub fn resize_image_if_needed(image_data: &[u8], max_size: u32) -> Result<Vec<u8
     );
 
     // 使用 Lanczos3 算法缩放（高质量）
+    // Lanczos3 是一种高质量的重采样算法，适合照片和复杂图像
+    // 相比双线性插值，它在保持锐度的同时减少了锯齿和模糊
     let resized = img.resize(new_width, new_height, image::imageops::FilterType::Lanczos3);
 
     // 输出为 PNG 格式

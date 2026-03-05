@@ -4,4 +4,4 @@
 
 mod templates;
 
-pub use templates::{info_card, help_menu, leaderboard, success, error, warning};
+pub use templates::{error, help_menu, info_card, leaderboard, success, warning};
