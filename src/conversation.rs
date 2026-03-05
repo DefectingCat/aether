@@ -4,7 +4,8 @@ use async_openai::types::chat::{
     ChatCompletionRequestAssistantMessage, ChatCompletionRequestAssistantMessageContent,
     ChatCompletionRequestMessage, ChatCompletionRequestMessageContentPartImage,
     ChatCompletionRequestMessageContentPartText, ChatCompletionRequestSystemMessage,
-    ChatCompletionRequestUserMessage, ChatCompletionRequestUserMessageContent, ImageUrl,
+    ChatCompletionRequestUserMessage, ChatCompletionRequestUserMessageContent, ImageDetail,
+    ImageUrl,
 };
 
 /// 会话历史管理器。
@@ -153,7 +154,7 @@ impl ConversationManager {
             ChatCompletionRequestMessageContentPartImage {
                 image_url: ImageUrl {
                     url: image_data_url.to_string(),
-                    detail: None,
+                    detail: Some(ImageDetail::Auto),
                 },
             }
             .into(),
