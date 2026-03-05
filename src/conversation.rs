@@ -2,8 +2,9 @@ use std::collections::HashMap;
 
 use async_openai::types::chat::{
     ChatCompletionRequestAssistantMessage, ChatCompletionRequestAssistantMessageContent,
-    ChatCompletionRequestMessage, ChatCompletionRequestSystemMessage,
-    ChatCompletionRequestUserMessage,
+    ChatCompletionRequestMessage, ChatCompletionRequestMessageContentPartImage,
+    ChatCompletionRequestMessageContentPartText, ChatCompletionRequestSystemMessage,
+    ChatCompletionRequestUserMessage, ChatCompletionRequestUserMessageContent, ImageUrl,
 };
 
 /// 会话历史管理器。
@@ -104,6 +105,68 @@ impl ConversationManager {
 
         // 历史长度限制：保留最近 N 轮对话（2N 条消息）
         // 使用 split_off 高效截断，避免迭代器开销
+        if history.len() > self.max_history * 2 {
+            *history = history.split_off(history.len() - self.max_history * 2);
+        }
+    }
+
+    /// 添加带图片的用户消息到指定会话。
+    ///
+    /// 用于 Vision API，支持发送文本和图片的组合消息。
+    /// 如果会话不存在，会自动创建。
+    ///
+    /// # Arguments
+    ///
+    /// * `session_id` - 会话标识符
+    /// * `text` - 用户消息文本内容
+    /// * `image_data_url` - 图片的 base64 data URL，格式为 `data:{media_type};base64,{data}`
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use aether_matrix::conversation::ConversationManager;
+    ///
+    /// let mut manager = ConversationManager::new(None, 10);
+    /// manager.add_user_message_with_image(
+    ///     "user-1",
+    ///     "What's in this image?",
+    ///     "data:image/png;base64,abc123",
+    /// );
+    /// ```
+    pub fn add_user_message_with_image(
+        &mut self,
+        session_id: &str,
+        text: &str,
+        image_data_url: &str,
+    ) {
+        let history = self
+            .conversations
+            .entry(session_id.to_string())
+            .or_default();
+
+        // 构造多部分消息内容（文本 + 图片）
+        let content = ChatCompletionRequestUserMessageContent::Array(vec![
+            ChatCompletionRequestMessageContentPartText {
+                text: text.to_string(),
+            }
+            .into(),
+            ChatCompletionRequestMessageContentPartImage {
+                image_url: ImageUrl {
+                    url: image_data_url.to_string(),
+                    detail: None,
+                },
+            }
+            .into(),
+        ]);
+
+        history.push(ChatCompletionRequestMessage::User(
+            ChatCompletionRequestUserMessage {
+                content,
+                name: None,
+            },
+        ));
+
+        // 历史长度限制
         if history.len() > self.max_history * 2 {
             *history = history.split_off(history.len() - self.max_history * 2);
         }

@@ -111,6 +111,24 @@ pub struct Config {
     ///
     /// 支持: `trace`, `debug`, `info`, `warn`, `error`
     pub log_level: String,
+
+    // --- Vision 配置 ---
+    /// 是否启用图片理解功能。
+    ///
+    /// 启用后机器人可以理解用户发送的图片内容。
+    pub vision_enabled: bool,
+
+    /// 图片理解使用的模型（需要支持 Vision API）。
+    ///
+    /// 如未设置，使用 `openai_model` 配置的模型。
+    /// 推荐使用 `gpt-4o`、`gpt-4o-mini` 等支持 Vision 的模型。
+    pub vision_model: Option<String>,
+
+    /// 图片最大尺寸（像素）。
+    ///
+    /// 超过此尺寸的图片会被自动缩放，以避免 API 限制和减少处理时间。
+    /// 保持宽高比，将图片缩放到最大边不超过此值。
+    pub vision_max_image_size: u32,
 }
 
 /// 为 `Config` 提供合理的默认值。
@@ -135,7 +153,12 @@ impl Default for Config {
             streaming_enabled: true,
             streaming_min_interval_ms: 1000,
             streaming_min_chars: 50,
+            // 日志配置
             log_level: "info".to_string(),
+            // Vision 配置
+            vision_enabled: true,
+            vision_model: None,
+            vision_max_image_size: 1024,
         }
     }
 }
@@ -271,6 +294,16 @@ impl Config {
                 .unwrap_or(50),
             // 日志配置
             log_level: std::env::var("LOG_LEVEL").unwrap_or_else(|_| "info".to_string()),
+            // Vision 配置
+            vision_enabled: std::env::var("VISION_ENABLED")
+                .ok()
+                .map(|s| s.to_lowercase() != "false")
+                .unwrap_or(true),
+            vision_model: std::env::var("VISION_MODEL").ok(),
+            vision_max_image_size: std::env::var("VISION_MAX_IMAGE_SIZE")
+                .ok()
+                .and_then(|s| s.parse().ok())
+                .unwrap_or(1024),
         })
     }
 }
@@ -307,6 +340,9 @@ mod tests {
                 "STREAMING_MIN_INTERVAL_MS",
                 "STREAMING_MIN_CHARS",
                 "LOG_LEVEL",
+                "VISION_ENABLED",
+                "VISION_MODEL",
+                "VISION_MAX_IMAGE_SIZE",
             ];
             for key in &keys_to_remove {
                 std::env::remove_var(key);
@@ -337,6 +373,9 @@ mod tests {
                 "STREAMING_MIN_INTERVAL_MS",
                 "STREAMING_MIN_CHARS",
                 "LOG_LEVEL",
+                "VISION_ENABLED",
+                "VISION_MODEL",
+                "VISION_MAX_IMAGE_SIZE",
             ];
             for key in &keys_to_remove {
                 std::env::remove_var(key);

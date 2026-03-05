@@ -56,8 +56,30 @@ impl AiServiceTrait for MockAiService {
         // 不支持流式测试
         anyhow::bail!("Streaming not supported in mock")
     }
-}
 
+    async fn chat_with_image(
+        &self,
+        _session_id: &str,
+        _text: &str,
+        _image_data_url: &str,
+    ) -> Result<String> {
+        let responses = self.responses.read().await;
+        if let Some(response) = responses.first() {
+            Ok(response.clone())
+        } else {
+            Ok("Mock vision response".to_string())
+        }
+    }
+
+    async fn chat_with_image_stream(
+        &self,
+        _session_id: &str,
+        _text: &str,
+        _image_data_url: &str,
+    ) -> Result<ChatStreamResponse> {
+        anyhow::bail!("Streaming not supported in mock")
+    }
+}
 // ============================================================================
 // 测试辅助函数
 // ============================================================================
@@ -80,6 +102,9 @@ fn create_test_config() -> Config {
         streaming_min_interval_ms: 500,
         streaming_min_chars: 10,
         log_level: "info".to_string(),
+        vision_enabled: true,
+        vision_model: None,
+        vision_max_image_size: 1024,
     }
 }
 
@@ -135,6 +160,36 @@ mod mock_ai_service_tests {
         let result = ai.chat_stream("session-1", "Hello").await;
         assert!(result.is_err());
     }
+
+    #[tokio::test]
+    async fn test_mock_ai_chat_with_image() {
+        let ai = MockAiService::new();
+        ai.add_response("This is an image description").await;
+
+        let result = ai
+            .chat_with_image(
+                "session-1",
+                "What's in this image?",
+                "data:image/png;base64,abc",
+            )
+            .await
+            .unwrap();
+        assert_eq!(result, "This is an image description");
+    }
+
+    #[tokio::test]
+    async fn test_mock_ai_chat_with_image_stream_returns_error() {
+        let ai = MockAiService::new();
+
+        let result = ai
+            .chat_with_image_stream(
+                "session-1",
+                "What's in this image?",
+                "data:image/png;base64,abc",
+            )
+            .await;
+        assert!(result.is_err());
+    }
 }
 
 // ============================================================================
@@ -151,5 +206,7 @@ mod config_tests {
         assert_eq!(config.command_prefix, "!ai");
         assert!(!config.streaming_enabled); // 测试配置中关闭了流式
         assert_eq!(config.max_history, 10);
+        assert!(config.vision_enabled);
+        assert_eq!(config.vision_max_image_size, 1024);
     }
 }

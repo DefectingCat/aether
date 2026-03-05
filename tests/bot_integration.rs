@@ -26,6 +26,9 @@ mod config_tests {
         assert_eq!(config.streaming_min_interval_ms, 1000);
         assert_eq!(config.streaming_min_chars, 50);
         assert_eq!(config.log_level, "info");
+        assert!(config.vision_enabled);
+        assert_eq!(config.vision_model, None);
+        assert_eq!(config.vision_max_image_size, 1024);
     }
 
     #[test]
@@ -61,6 +64,9 @@ mod config_tests {
             streaming_min_interval_ms: 2000,
             streaming_min_chars: 100,
             log_level: "debug".to_string(),
+            vision_enabled: false,
+            vision_model: Some("gpt-4o".to_string()),
+            vision_max_image_size: 2048,
         };
 
         assert_eq!(config.matrix_homeserver, "https://custom.server");
@@ -70,6 +76,8 @@ mod config_tests {
         assert_eq!(config.openai_model, "custom-model");
         assert_eq!(config.max_history, 20);
         assert!(!config.streaming_enabled);
+        assert!(!config.vision_enabled);
+        assert_eq!(config.vision_model, Some("gpt-4o".to_string()));
     }
 }
 
@@ -97,6 +105,9 @@ mod bot_tests {
             streaming_min_interval_ms: 500,
             streaming_min_chars: 10,
             log_level: "info".to_string(),
+            vision_enabled: true,
+            vision_model: None,
+            vision_max_image_size: 1024,
         }
     }
 

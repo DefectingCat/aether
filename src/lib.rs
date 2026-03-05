@@ -8,6 +8,7 @@
 //! - **多会话管理**: 按用户/房间隔离会话历史
 //! - **会话持久化**: Matrix SDK 内置 SQLite 存储
 //! - **灵活配置**: 支持环境变量和 `.env` 文件配置
+//! - **图片理解**: 支持 Vision API 理解用户发送的图片
 //!
 //! ## 模块结构
 //!
@@ -16,13 +17,15 @@
 //! - [`conversation`][]: 多用户/多房间的会话历史管理
 //! - [`ai_service`]: OpenAI API 封装，支持普通和流式两种响应模式
 //! - [`event_handler`]: Matrix 事件处理，包括邀请和消息事件
-//! - [`bot`][]: 机器人主逻辑，负责初始化和运行
+//! - [`media`]: 媒体处理，包括图片下载、缩放和 base64 编码
+//! - [`bot`]: 机器人主逻辑，负责初始化和运行
 
 pub mod ai_service;
 pub mod bot;
 pub mod config;
 pub mod conversation;
 pub mod event_handler;
+pub mod media;
 pub mod traits;
 
 // 重新导出常用类型，方便测试使用

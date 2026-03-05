@@ -93,8 +93,8 @@ impl Bot {
         // 创建 AI 服务实例
         let ai_service = AiService::new(&config);
 
-        // 创建事件处理器
-        let handler = EventHandler::new(ai_service, user_id.to_owned(), &config);
+        // 创建事件处理器（传递 client 用于下载媒体）
+        let handler = EventHandler::new(ai_service, user_id.to_owned(), client.clone(), &config);
 
         Ok(Self { client, handler })
     }

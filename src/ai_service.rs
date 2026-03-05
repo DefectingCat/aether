@@ -288,6 +288,160 @@ impl AiService {
 
         Ok((state, Box::pin(wrapped_stream)))
     }
+
+    /// 执行带图片的聊天（Vision API）。
+    ///
+    /// 发送用户消息（包含文本和图片）并返回 AI 的完整回复。
+    /// 适用于需要理解图片内容的场景。
+    ///
+    /// # Arguments
+    ///
+    /// * `session_id` - 会话标识符
+    /// * `text` - 用户输入的文本内容
+    /// * `image_data_url` - 图片的 base64 data URL
+    ///
+    /// # Returns
+    ///
+    /// 成功时返回 AI 的完整回复文本。
+    ///
+    /// # Errors
+    ///
+    /// 当 API 调用失败时返回错误。
+    pub async fn chat_with_image(
+        &self,
+        session_id: &str,
+        text: &str,
+        image_data_url: &str,
+    ) -> Result<String> {
+        // 添加带图片的用户消息到历史
+        {
+            let mut conv = self.inner.conversation.write().await;
+            conv.add_user_message_with_image(session_id, text, image_data_url);
+        }
+
+        // 获取完整消息历史（包含系统提示词）
+        let messages = {
+            let conv = self.inner.conversation.read().await;
+            conv.get_messages(session_id)
+        };
+
+        // 构建并发送 API 请求
+        let request = CreateChatCompletionRequest {
+            model: self.inner.model.clone(),
+            messages,
+            ..Default::default()
+        };
+
+        let response = self.inner.client.chat().create(request).await?;
+
+        // 提取回复内容
+        let content = response.choices[0]
+            .message
+            .content
+            .clone()
+            .unwrap_or_default();
+
+        // 保存 AI 回复到历史
+        {
+            let mut conv = self.inner.conversation.write().await;
+            conv.add_assistant_message(session_id, &content);
+        }
+
+        Ok(content)
+    }
+
+    /// 执行带图片的流式聊天（Vision API）。
+    ///
+    /// 与 [`chat_with_image`](AiService::chat_with_image) 类似，但返回流式响应，
+    /// 允许实时显示 AI 的输出（打字机效果）。
+    ///
+    /// # Arguments
+    ///
+    /// * `session_id` - 会话标识符
+    /// * `text` - 用户输入的文本内容
+    /// * `image_data_url` - 图片的 base64 data URL
+    ///
+    /// # Returns
+    ///
+    /// 返回元组 `(state, stream)`：
+    /// - `state`: 共享状态，可随时获取累积的完整内容
+    /// - `stream`: 可消费的流，每次产生一个文本片段
+    ///
+    /// # Errors
+    ///
+    /// 当 API 调用初始化失败时返回错误。
+    pub async fn chat_with_image_stream(
+        &self,
+        session_id: &str,
+        text: &str,
+        image_data_url: &str,
+    ) -> Result<ChatStreamResponse> {
+        // 添加带图片的用户消息到历史
+        {
+            let mut conv = self.inner.conversation.write().await;
+            conv.add_user_message_with_image(session_id, text, image_data_url);
+        }
+
+        // 获取完整消息历史
+        let messages = {
+            let conv = self.inner.conversation.read().await;
+            conv.get_messages(session_id)
+        };
+
+        // 创建流式请求
+        let request = CreateChatCompletionRequest {
+            model: self.inner.model.clone(),
+            messages,
+            stream: Some(true),
+            ..Default::default()
+        };
+
+        let stream = self.inner.client.chat().create_stream(request).await?;
+
+        // 创建共享状态，用于追踪累积内容
+        let state = Arc::new(Mutex::new(StreamingState::new()));
+        let state_clone = state.clone();
+        let conversation = self.inner.conversation.clone();
+        let session_id_owned = session_id.to_string();
+
+        // 包装 stream：在消费时更新共享状态
+        let wrapped_stream = stream.filter_map(move |chunk_result| {
+            let state = state_clone.clone();
+            let conversation = conversation.clone();
+            let session_id_owned = session_id_owned.clone();
+            async move {
+                match chunk_result {
+                    Ok(chunk) => {
+                        if let Some(delta) =
+                            chunk.choices.first().and_then(|c| c.delta.content.clone())
+                        {
+                            {
+                                let mut s = state.lock().await;
+                                s.append(&delta);
+                            }
+                            Some(Ok(delta))
+                        } else {
+                            if chunk
+                                .choices
+                                .first()
+                                .is_some_and(|c| c.finish_reason.is_some())
+                            {
+                                let s = state.lock().await;
+                                let content = s.content().to_string();
+                                drop(s);
+                                let mut conv = conversation.write().await;
+                                conv.add_assistant_message(&session_id_owned, &content);
+                            }
+                            None
+                        }
+                    }
+                    Err(e) => Some(Err(anyhow::anyhow!("流式响应错误: {}", e))),
+                }
+            }
+        });
+
+        Ok((state, Box::pin(wrapped_stream)))
+    }
 }
 
 impl AiServiceTrait for AiService {
@@ -301,6 +455,25 @@ impl AiServiceTrait for AiService {
 
     async fn chat_stream(&self, session_id: &str, prompt: &str) -> Result<ChatStreamResponse> {
         self.chat_stream(session_id, prompt).await
+    }
+
+    async fn chat_with_image(
+        &self,
+        session_id: &str,
+        text: &str,
+        image_data_url: &str,
+    ) -> Result<String> {
+        self.chat_with_image(session_id, text, image_data_url).await
+    }
+
+    async fn chat_with_image_stream(
+        &self,
+        session_id: &str,
+        text: &str,
+        image_data_url: &str,
+    ) -> Result<ChatStreamResponse> {
+        self.chat_with_image_stream(session_id, text, image_data_url)
+            .await
     }
 }
 

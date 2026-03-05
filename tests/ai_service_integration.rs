@@ -28,6 +28,9 @@ fn create_test_config(api_url: &str) -> Config {
         streaming_min_interval_ms: 500,
         streaming_min_chars: 10,
         log_level: "info".to_string(),
+        vision_enabled: true,
+        vision_model: None,
+        vision_max_image_size: 1024,
     }
 }
 

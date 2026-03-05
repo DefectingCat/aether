@@ -55,6 +55,24 @@ pub type ChatStreamResponse = (
 ///     ) -> Result<aether_matrix::traits::ChatStreamResponse> {
 ///         unimplemented!("mock implementation")
 ///     }
+///
+///     async fn chat_with_image(
+///         &self,
+///         session_id: &str,
+///         text: &str,
+///         image_data_url: &str,
+///     ) -> Result<String> {
+///         Ok("Mock vision response".to_string())
+///     }
+///
+///     async fn chat_with_image_stream(
+///         &self,
+///         session_id: &str,
+///         text: &str,
+///         image_data_url: &str,
+///     ) -> Result<aether_matrix::traits::ChatStreamResponse> {
+///         unimplemented!("mock implementation")
+///     }
 /// }
 /// ```
 pub trait AiServiceTrait: Clone + Send + Sync + 'static {
@@ -112,5 +130,61 @@ pub trait AiServiceTrait: Clone + Send + Sync + 'static {
         &self,
         session_id: &str,
         prompt: &str,
+    ) -> impl Future<Output = Result<ChatStreamResponse>> + Send;
+
+    /// 执行带图片的聊天（Vision API）。
+    ///
+    /// 发送用户消息（包含文本和图片）并返回 AI 的完整回复。
+    /// 适用于需要理解图片内容的场景。
+    ///
+    /// # Arguments
+    ///
+    /// * `session_id` - 会话标识符，用于隔离不同用户/房间的对话
+    /// * `text` - 用户输入的文本内容（可以是关于图片的问题或描述）
+    /// * `image_data_url` - 图片的 base64 data URL，格式为 `data:{media_type};base64,{data}`
+    ///
+    /// # Returns
+    ///
+    /// 成功时返回 AI 的回复文本。
+    ///
+    /// # Errors
+    ///
+    /// 当 API 调用失败时返回错误，例如：
+    /// - 网络连接问题
+    /// - API 认证失败
+    /// - 模型不支持 Vision API
+    /// - 图片格式无效
+    fn chat_with_image(
+        &self,
+        session_id: &str,
+        text: &str,
+        image_data_url: &str,
+    ) -> impl Future<Output = Result<String>> + Send;
+
+    /// 执行带图片的流式聊天（Vision API）。
+    ///
+    /// 与 [`chat_with_image`](AiServiceTrait::chat_with_image) 类似，但返回流式响应，
+    /// 允许实时显示 AI 的输出（打字机效果）。
+    ///
+    /// # Arguments
+    ///
+    /// * `session_id` - 会话标识符
+    /// * `text` - 用户输入的文本内容
+    /// * `image_data_url` - 图片的 base64 data URL
+    ///
+    /// # Returns
+    ///
+    /// 成功时返回 [`ChatStreamResponse`]，包含：
+    /// - 共享状态，可随时获取累积的完整内容
+    /// - 流，消费时产生每个文本片段
+    ///
+    /// # Errors
+    ///
+    /// 当 API 调用初始化失败时返回错误。
+    fn chat_with_image_stream(
+        &self,
+        session_id: &str,
+        text: &str,
+        image_data_url: &str,
     ) -> impl Future<Output = Result<ChatStreamResponse>> + Send;
 }
