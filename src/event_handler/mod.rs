@@ -4,9 +4,13 @@
 
 mod extract;
 mod invite;
-mod streaming;
+pub mod streaming;
 
 pub use invite::handle_invite;
+pub use streaming::StreamingHandler;
+
+#[cfg(test)]
+pub use invite::handle_invite_with_client;
 
 use std::time::Duration;
 
@@ -23,7 +27,6 @@ use tracing::{debug, warn};
 use crate::config::Config;
 use crate::media::download_image_as_base64;
 use crate::traits::AiServiceTrait;
-use streaming::StreamingHandler;
 
 /// Matrix 消息事件处理器。
 ///

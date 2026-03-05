@@ -1,5 +1,6 @@
 use anyhow::Result;
 use futures_util::Stream;
+use matrix_sdk::ruma::OwnedEventId;
 use std::{future::Future, pin::Pin, sync::Arc};
 use tokio::sync::Mutex;
 
@@ -233,4 +234,47 @@ pub trait AiServiceTrait: Clone + Send + Sync + 'static {
         text: &str,
         image_data_url: &str,
     ) -> impl Future<Output = Result<ChatStreamResponse>> + Send;
+}
+
+pub trait MessageSender: Clone + Send + Sync + 'static {
+    fn send(&self, content: &str) -> impl Future<Output = Result<OwnedEventId>> + Send;
+    fn edit(&self, event_id: OwnedEventId, new_content: &str) -> impl Future<Output = Result<()>> + Send;
+}
+
+pub trait MatrixClient: Clone + Send + Sync + 'static {
+    fn user_id(&self) -> Option<matrix_sdk::ruma::OwnedUserId>;
+    fn join_room_by_id(&self, room_id: &matrix_sdk::ruma::RoomId) -> impl Future<Output = Result<()>> + Send;
+}
+
+#[derive(Clone)]
+pub struct ClientWrapper(pub matrix_sdk::Client);
+
+impl MatrixClient for ClientWrapper {
+    fn user_id(&self) -> Option<matrix_sdk::ruma::OwnedUserId> {
+        self.0.user_id().map(|id| id.to_owned())
+    }
+
+    async fn join_room_by_id(&self, room_id: &matrix_sdk::ruma::RoomId) -> Result<()> {
+        self.0.join_room_by_id(room_id).await?;
+        Ok(())
+    }
+}
+
+#[derive(Clone)]
+pub struct RoomSender(pub matrix_sdk::Room);
+
+impl MessageSender for RoomSender {
+    async fn send(&self, content: &str) -> Result<OwnedEventId> {
+        use matrix_sdk::ruma::events::room::message::RoomMessageEventContent;
+        let response = self.0.send(RoomMessageEventContent::text_plain(content)).await?;
+        Ok(response.event_id)
+    }
+
+    async fn edit(&self, event_id: OwnedEventId, new_content: &str) -> Result<()> {
+        use matrix_sdk::ruma::events::room::message::{ReplacementMetadata, RoomMessageEventContent};
+        let metadata = ReplacementMetadata::new(event_id, None);
+        let msg_content = RoomMessageEventContent::text_plain(new_content).make_replacement(metadata);
+        self.0.send(msg_content).await?;
+        Ok(())
+    }
 }
