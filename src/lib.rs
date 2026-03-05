@@ -18,7 +18,7 @@
 //! - [`ai_service`]: OpenAI API 封装，支持普通和流式两种响应模式
 //! - [`event_handler`]: Matrix 事件处理，包括邀请和消息事件
 //! - [`media`]: 媒体处理，包括图片下载、缩放和 base64 编码
-//! - [`bot`]: 机器人主逻辑，负责初始化和运行
+//! - [`bot`][]: 机器人主逻辑，负责初始化和运行
 
 pub mod ai_service;
 pub mod bot;
