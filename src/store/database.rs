@@ -44,6 +44,10 @@ impl Database {
         let migration_sql = include_str!("../../migrations/20260305000000_init.sql");
         conn.execute_batch(migration_sql)?;
 
+        // 迁移 2: 赛博木鱼模块
+        let migration_sql = include_str!("../../migrations/20260306000000_muyu.sql");
+        conn.execute_batch(migration_sql)?;
+
         tracing::info!("数据库迁移完成");
         Ok(())
     }

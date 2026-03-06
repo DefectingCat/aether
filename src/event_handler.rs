@@ -340,8 +340,6 @@ MessageType::Image(image_msg) if self.vision_enabled => {
                     }
                 }
             }
-                }
-            }
             _ => {}
         }
 
