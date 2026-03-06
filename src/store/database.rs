@@ -53,3 +53,94 @@ impl Database {
         &self.conn
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::TempDir;
+
+    #[test]
+    fn test_new_creates_database_file() {
+        let temp_dir = TempDir::new().unwrap();
+        let db_path = temp_dir
+            .path()
+            .join("test.db")
+            .to_string_lossy()
+            .to_string();
+
+        let _db = Database::new(&db_path).unwrap();
+
+        assert!(std::path::Path::new(&db_path).exists());
+    }
+
+    #[test]
+    fn test_new_creates_parent_directory() {
+        let temp_dir = TempDir::new().unwrap();
+        let db_path = temp_dir
+            .path()
+            .join("subdir")
+            .join("test.db")
+            .to_string_lossy()
+            .to_string();
+
+        let _db = Database::new(&db_path).unwrap();
+
+        assert!(std::path::Path::new(&db_path).exists());
+        assert!(temp_dir.path().join("subdir").exists());
+    }
+
+    #[test]
+    fn test_new_runs_migrations() {
+        let temp_dir = TempDir::new().unwrap();
+        let db_path = temp_dir
+            .path()
+            .join("test.db")
+            .to_string_lossy()
+            .to_string();
+
+        let db = Database::new(&db_path).unwrap();
+
+        let conn = db.conn.lock().unwrap();
+        let result: Result<i32, _> = conn.query_row(
+            "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='personas'",
+            [],
+            |row| row.get(0),
+        );
+
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), 1);
+    }
+
+    #[test]
+    fn test_conn_returns_arc_mutex() {
+        let temp_dir = TempDir::new().unwrap();
+        let db_path = temp_dir
+            .path()
+            .join("test.db")
+            .to_string_lossy()
+            .to_string();
+
+        let db = Database::new(&db_path).unwrap();
+
+        let conn = db.conn();
+        let _guard = conn.lock().unwrap();
+    }
+
+    #[test]
+    fn test_clone_shares_connection() {
+        let temp_dir = TempDir::new().unwrap();
+        let db_path = temp_dir
+            .path()
+            .join("test.db")
+            .to_string_lossy()
+            .to_string();
+
+        let db1 = Database::new(&db_path).unwrap();
+        let db2 = db1.clone();
+
+        let conn1 = db1.conn.lock().unwrap();
+        drop(conn1);
+        let conn2 = db2.conn.lock().unwrap();
+        drop(conn2);
+    }
+}

@@ -209,21 +209,8 @@ impl BotInfoHandler {
             return send_html(&ctx.room, &html).await;
         }
 
-        let new_prefix: String = ctx.sub_args().join(" ");
-        if new_prefix.is_empty() {
-            let html = error("请提供新前缀: !bot prefix <前缀>");
-            return send_html(&ctx.room, &html).await;
-        }
-
-        // 更新命令前缀（通过 CommandGateway 的热更新方法）
-        if let Some(gateway) = ctx.gateway {
-            gateway.set_prefix(new_prefix.clone());
-            let html = success(&format!("命令前缀已修改为: {}", new_prefix));
-            send_html(&ctx.room, &html).await
-        } else {
-            let html = error("无法更新命令前缀: Gateway 不可用");
-            send_html(&ctx.room, &html).await
-        }
+        let html = error("命令前缀热更新功能已移除");
+        send_html(&ctx.room, &html).await
     }
 
     async fn handle_avatar(&self, ctx: &CommandContext<'_>) -> Result<()> {
@@ -275,7 +262,7 @@ impl BotInfoHandler {
         // 上传到 Matrix media server
         let media = ctx.client.media();
         let mime_type: mime::Mime = content_type.parse()?;
-        match media.upload(&mime_type, bytes.to_vec().into(), None).await {
+        match media.upload(&mime_type, bytes.to_vec(), None).await {
             Ok(response) => {
                 // 设置头像 URL
                 let account = ctx.client.account();

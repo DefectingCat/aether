@@ -7,8 +7,6 @@ pub struct ParsedCommand<'a> {
     pub cmd: &'a str,
     /// 参数列表（第一个参数可作为子命令）
     pub args: Vec<&'a str>,
-    /// 原始消息
-    pub raw_msg: &'a str,
 }
 
 /// 命令解析器
@@ -25,11 +23,13 @@ impl Parser {
     }
 
     /// 获取命令前缀
+    #[allow(dead_code)]
     pub fn prefix(&self) -> &str {
         &self.prefix
     }
 
     /// 更新命令前缀
+    #[allow(dead_code)]
     pub fn set_prefix(&mut self, prefix: String) {
         self.prefix = prefix;
     }
@@ -65,11 +65,7 @@ impl Parser {
             Vec::new()
         };
 
-        Some(ParsedCommand {
-            cmd,
-            args,
-            raw_msg: msg,
-        })
+        Some(ParsedCommand { cmd, args })
     }
 
     /// 分词，支持引号包裹的参数

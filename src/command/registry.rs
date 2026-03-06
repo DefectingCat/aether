@@ -36,18 +36,6 @@ pub trait CommandHandler: Send + Sync {
     async fn execute(&self, ctx: &CommandContext<'_>) -> Result<()>;
 }
 
-/// 子命令信息
-#[derive(Debug, Clone)]
-#[allow(dead_code)]
-pub struct SubCommand {
-    /// 子命令名称
-    pub name: String,
-    /// 描述
-    pub description: String,
-    /// 使用说明
-    pub usage: String,
-}
-
 /// 命令注册表
 #[derive(Clone)]
 pub struct CommandRegistry {
@@ -74,6 +62,7 @@ impl CommandRegistry {
     }
 
     /// 获取所有命令名称
+    #[allow(dead_code)]
     pub fn commands(&self) -> Vec<&str> {
         self.handlers.keys().map(|s| s.as_str()).collect()
     }
@@ -123,5 +112,169 @@ impl CommandRegistry {
 impl Default for CommandRegistry {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::command::context::CommandContext;
+
+    struct MockHandler {
+        name: &'static str,
+        desc: &'static str,
+        permission: Permission,
+    }
+
+    impl MockHandler {
+        fn new(name: &'static str, desc: &'static str) -> Self {
+            Self {
+                name,
+                desc,
+                permission: Permission::Anyone,
+            }
+        }
+
+        fn with_permission(name: &'static str, desc: &'static str, permission: Permission) -> Self {
+            Self {
+                name,
+                desc,
+                permission,
+            }
+        }
+    }
+
+    #[async_trait]
+    impl CommandHandler for MockHandler {
+        fn name(&self) -> &str {
+            self.name
+        }
+
+        fn description(&self) -> &str {
+            self.desc
+        }
+
+        fn permission(&self) -> Permission {
+            self.permission
+        }
+
+        async fn execute(&self, _ctx: &CommandContext<'_>) -> Result<()> {
+            Ok(())
+        }
+    }
+
+    #[test]
+    fn test_new_registry_is_empty() {
+        let registry = CommandRegistry::new();
+        assert!(registry.commands().is_empty());
+    }
+
+    #[test]
+    fn test_register_adds_handler() {
+        let mut registry = CommandRegistry::new();
+        let handler = Arc::new(MockHandler::new("test", "Test command"));
+
+        registry.register(handler);
+
+        assert_eq!(registry.commands().len(), 1);
+        assert!(registry.commands().contains(&"test"));
+    }
+
+    #[test]
+    fn test_get_returns_registered_handler() {
+        let mut registry = CommandRegistry::new();
+        let handler = Arc::new(MockHandler::new("test", "Test command"));
+
+        registry.register(handler);
+
+        let retrieved = registry.get("test");
+        assert!(retrieved.is_some());
+        assert_eq!(retrieved.unwrap().name(), "test");
+    }
+
+    #[test]
+    fn test_get_returns_none_for_unregistered() {
+        let registry = CommandRegistry::new();
+        let retrieved = registry.get("nonexistent");
+        assert!(retrieved.is_none());
+    }
+
+    #[test]
+    fn test_commands_returns_all_names() {
+        let mut registry = CommandRegistry::new();
+        let handler1 = Arc::new(MockHandler::new("cmd1", "Command 1"));
+        let handler2 = Arc::new(MockHandler::new("cmd2", "Command 2"));
+
+        registry.register(handler1);
+        registry.register(handler2);
+
+        let commands = registry.commands();
+        assert_eq!(commands.len(), 2);
+        assert!(commands.contains(&"cmd1"));
+        assert!(commands.contains(&"cmd2"));
+    }
+
+    #[test]
+    fn test_register_overwrites_duplicate() {
+        let mut registry = CommandRegistry::new();
+        let handler1 = Arc::new(MockHandler::new("test", "First"));
+        let handler2 = Arc::new(MockHandler::new("test", "Second"));
+
+        registry.register(handler1);
+        registry.register(handler2);
+
+        assert_eq!(registry.commands().len(), 1);
+        let retrieved = registry.get("test").unwrap();
+        assert_eq!(retrieved.description(), "Second");
+    }
+
+    #[test]
+    fn test_generate_help_includes_command_name() {
+        let mut registry = CommandRegistry::new();
+        let handler = Arc::new(MockHandler::new("help", "Show help"));
+
+        registry.register(handler);
+
+        let help = registry.generate_help();
+        assert!(help.contains("!help"));
+    }
+
+    #[test]
+    fn test_generate_help_includes_description() {
+        let mut registry = CommandRegistry::new();
+        let handler = Arc::new(MockHandler::new("test", "This is a test command"));
+
+        registry.register(handler);
+
+        let help = registry.generate_help();
+        assert!(help.contains("This is a test command"));
+    }
+
+    #[test]
+    fn test_generate_help_includes_permission_when_not_anyone() {
+        let mut registry = CommandRegistry::new();
+        let handler = Arc::new(MockHandler::with_permission(
+            "admin",
+            "Admin command",
+            Permission::BotOwner,
+        ));
+
+        registry.register(handler);
+
+        let help = registry.generate_help();
+        assert!(help.contains("权限"));
+    }
+
+    #[test]
+    fn test_generate_help_html_valid_html() {
+        let mut registry = CommandRegistry::new();
+        let handler = Arc::new(MockHandler::new("test", "Test command"));
+
+        registry.register(handler);
+
+        let html = registry.generate_help_html();
+        assert!(html.contains("<"));
+        assert!(html.contains(">"));
+        assert!(html.contains("!test"));
     }
 }

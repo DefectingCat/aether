@@ -88,22 +88,7 @@ impl AiService {
     }
 
     /// 执行普通（非流式）聊天。
-    ///
-    /// 发送用户消息并返回 AI 的完整回复。
-    /// 消息会自动添加到会话历史中。
-    ///
-    /// # Arguments
-    ///
-    /// * `session_id` - 会话标识符，用于隔离不同用户/房间的对话
-    /// * `prompt` - 用户输入的消息内容
-    ///
-    /// # Returns
-    ///
-    /// 成功时返回 AI 的完整回复文本。
-    ///
-    /// # Errors
-    ///
-    /// 当 API 调用失败时返回错误。
+    #[allow(dead_code)]
     pub async fn chat(&self, session_id: &str, prompt: &str) -> Result<String> {
         // 添加用户消息到历史（使用独立作用域限制锁的生命周期）
         {
@@ -142,7 +127,7 @@ impl AiService {
         Ok(content)
     }
 
-/// 执行带自定义系统提示词的聊天。
+    /// 执行带自定义系统提示词的聊天。
     ///
     /// 与 [`chat`](AiService::chat) 类似，但允许覆盖默认的系统提示词。
     /// 适用于人设系统等需要动态改变 AI 行为的场景。
@@ -208,40 +193,14 @@ impl AiService {
     /// # Arguments
     ///
     /// * `session_id` - 要重置的会话标识符
+    #[allow(dead_code)]
     pub async fn reset_conversation(&self, session_id: &str) {
         let mut conv = self.inner.conversation.write().await;
         conv.reset(session_id);
     }
 
     /// 执行流式聊天。
-    ///
-    /// 与 [`chat`](AiService::chat) 类似，但返回流式响应，
-    /// 允许实时显示 AI 的输出（打字机效果）。
-    ///
-    /// # Arguments
-    ///
-    /// * `session_id` - 会话标识符
-    /// * `prompt` - 用户输入的消息内容
-    ///
-    /// # Returns
-    ///
-    /// 返回元组 `(state, stream)`：
-    /// - `state`: 共享状态，可随时获取累积的完整内容
-    /// - `stream`: 可消费的流，每次产生一个文本片段
-    ///
-    /// # Errors
-    ///
-    /// 当 API 调用初始化失败时返回错误。
-    ///
-    /// # Note
-    ///
-    /// AI 的完整回复会在流结束时自动保存到会话历史。
-    ///
-    /// # State Management
-    ///
-    /// 使用 `Arc<Mutex<StreamingState>>` 实现流生产者和消费者之间的状态共享：
-    /// - 消费者可以从 Stream 读取每个 chunk
-    /// - 同时可以通过 StreamingState 获取当前累积的完整内容
+    #[allow(dead_code)]
     pub async fn chat_stream(&self, session_id: &str, prompt: &str) -> Result<ChatStreamResponse> {
         // 添加用户消息到历史
         {
@@ -378,25 +337,7 @@ impl AiService {
     }
 
     /// 执行带图片的流式聊天（Vision API）。
-    ///
-    /// 与 [`chat_with_image`](AiService::chat_with_image) 类似，但返回流式响应，
-    /// 允许实时显示 AI 的输出（打字机效果）。
-    ///
-    /// # Arguments
-    ///
-    /// * `session_id` - 会话标识符
-    /// * `text` - 用户输入的文本内容
-    /// * `image_data_url` - 图片的 base64 data URL
-    ///
-    /// # Returns
-    ///
-    /// 返回元组 `(state, stream)`：
-    /// - `state`: 共享状态，可随时获取累积的完整内容
-    /// - `stream`: 可消费的流，每次产生一个文本片段
-    ///
-    /// # Errors
-    ///
-    /// 当 API 调用初始化失败时返回错误。
+    #[allow(dead_code)]
     pub async fn chat_with_image_stream(
         &self,
         session_id: &str,
@@ -567,7 +508,8 @@ impl AiServiceTrait for AiService {
         prompt: &str,
         system_prompt: Option<&str>,
     ) -> Result<String> {
-        self.chat_with_system(session_id, prompt, system_prompt).await
+        self.chat_with_system(session_id, prompt, system_prompt)
+            .await
     }
 
     async fn reset_conversation(&self, session_id: &str) {
@@ -606,7 +548,8 @@ impl AiServiceTrait for AiService {
         Arc<Mutex<StreamingState>>,
         Pin<Box<dyn Stream<Item = Result<String>> + Send>>,
     )> {
-        self.chat_stream_with_system(session_id, prompt, system_prompt).await
+        self.chat_stream_with_system(session_id, prompt, system_prompt)
+            .await
     }
 }
 

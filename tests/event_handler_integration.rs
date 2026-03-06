@@ -140,7 +140,7 @@ fn create_test_config() -> Config {
 mod mock_ai_service_tests {
     use super::*;
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn test_mock_ai_chat_with_response() {
         let ai = MockAiService::new();
         ai.add_response("Test response").await;
@@ -149,7 +149,7 @@ mod mock_ai_service_tests {
         assert_eq!(result, "Test response");
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn test_mock_ai_chat_without_response() {
         let ai = MockAiService::new();
 
@@ -157,7 +157,7 @@ mod mock_ai_service_tests {
         assert_eq!(result, "Echo: Hello");
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn test_mock_ai_reset() {
         let ai = MockAiService::new();
 
@@ -166,7 +166,7 @@ mod mock_ai_service_tests {
         assert!(ai.was_reset_called().await);
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn test_mock_ai_multiple_sessions() {
         let ai = MockAiService::new();
         ai.add_response("Response for session A").await;
@@ -178,7 +178,7 @@ mod mock_ai_service_tests {
         assert_eq!(result_b, "Response for session A"); // 使用相同的预设响应
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn test_mock_ai_chat_stream_returns_error() {
         let ai = MockAiService::new();
 
@@ -186,7 +186,7 @@ mod mock_ai_service_tests {
         assert!(result.is_err());
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn test_mock_ai_chat_with_image() {
         let ai = MockAiService::new();
         ai.add_response("This is an image description").await;
@@ -202,7 +202,7 @@ mod mock_ai_service_tests {
         assert_eq!(result, "This is an image description");
     }
 
-    #[tokio::test]
+    #[tokio::test(flavor = "multi_thread")]
     async fn test_mock_ai_chat_with_image_stream_returns_error() {
         let ai = MockAiService::new();
 

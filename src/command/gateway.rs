@@ -4,10 +4,10 @@ use std::sync::{Arc, RwLock};
 
 use anyhow::Result;
 use matrix_sdk::Room;
-use matrix_sdk::ruma::{OwnedEventId, OwnedUserId};
+use matrix_sdk::ruma::OwnedUserId;
 use tracing::debug;
 
-use super::context::CommandContext;
+use super::context::{CommandContext, CommandContextArgs};
 use super::parser::Parser;
 use super::registry::CommandRegistry;
 use crate::ui;
@@ -35,13 +35,13 @@ impl CommandGateway {
 
     /// 注册命令处理器
     pub fn register(&mut self, handler: Arc<dyn super::registry::CommandHandler>) {
-        // 由于使用 Arc，需要创建新的 Registry 来注册
         let mut registry = (*self.registry).clone();
         registry.register(handler);
         self.registry = Arc::new(registry);
     }
 
     /// 设置命令前缀（热更新）
+    #[allow(dead_code)]
     pub fn set_prefix(&self, prefix: String) {
         self.parser.write().unwrap().set_prefix(prefix);
     }
@@ -58,9 +58,7 @@ impl CommandGateway {
         room: Room,
         sender: OwnedUserId,
         msg: &str,
-        event_id: OwnedEventId,
     ) -> Result<()> {
-        // 解析命令
         let parsed = match self.parser.read().unwrap().parse(msg) {
             Some(p) => p,
             None => return Ok(()),
@@ -68,24 +66,20 @@ impl CommandGateway {
 
         debug!("解析命令: cmd={}, args={:?}", parsed.cmd, parsed.args);
 
-        // 处理内置命令
         if parsed.cmd == "help" {
             self.handle_help(&room).await?;
             return Ok(());
         }
 
-        // 查找命令处理器
         let handler = match self.registry.get(parsed.cmd) {
             Some(h) => h,
             None => {
-                // 未知命令
                 let html = ui::error(&format!("未知命令: !{}", parsed.cmd));
                 send_html_message(&room, &html, &format!("未知命令: !{}", parsed.cmd)).await?;
                 return Ok(());
             }
         };
 
-        // 权限检查
         let permission = handler.permission();
         if !permission.check(&room, &sender, &self.bot_owners).await {
             let html = ui::error(&format!("权限不足: 需要 {}", permission.display_name()));
@@ -98,17 +92,13 @@ impl CommandGateway {
             return Ok(());
         }
 
-        // 创建上下文并执行
-        let ctx = CommandContext::new(
+        let ctx = CommandContext::new(CommandContextArgs {
             client,
             room,
             sender,
-            parsed.cmd,
-            parsed.args,
-            parsed.raw_msg,
-            event_id,
-            &self.bot_owners,
-        );
+            args: parsed.args,
+            bot_owners: &self.bot_owners,
+        });
 
         handler.execute(&ctx).await
     }
@@ -145,13 +135,10 @@ mod tests {
     fn test_gateway_prefix_update() {
         let gateway = CommandGateway::new("!".to_string(), vec![]);
         assert!(gateway.is_command("!help"));
-        // 注意: "!!help" 也以 "!" 开头，所以 is_command 返回 true
         assert!(gateway.is_command("!!help"));
 
-        // 热更新前缀
         gateway.set_prefix("!!".to_string());
         assert!(gateway.is_command("!!help"));
-        // "!help" 不以 "!!" 开头
         assert!(!gateway.is_command("!help"));
     }
 }

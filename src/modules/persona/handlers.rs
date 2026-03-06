@@ -60,7 +60,10 @@ impl PersonaHandler {
             ("!persona set <id>", "设置房间人设（管理员）"),
             ("!persona off", "关闭房间人设（管理员）"),
             ("!persona info <id>", "查看人设详情"),
-            ("!persona create <id> <名称> <提示词>", "创建自定义人设（管理员）"),
+            (
+                "!persona create <id> <名称> <提示词>",
+                "创建自定义人设（管理员）",
+            ),
             ("!persona delete <id>", "删除自定义人设（管理员）"),
         ];
         let html = info_card("Persona 命令", &items);
@@ -117,10 +120,7 @@ impl PersonaHandler {
                     .set_room_persona(&room_id, &persona_id, &set_by)?;
 
                 let emoji = persona.avatar_emoji.as_deref().unwrap_or("");
-                let html = success(&format!(
-                    "已设置人设: {} {}",
-                    emoji, persona.name
-                ));
+                let html = success(&format!("已设置人设: {} {}", emoji, persona.name));
                 send_html(&ctx.room, &html).await
             }
             None => {
@@ -145,7 +145,12 @@ impl PersonaHandler {
 
         // 恢复 Bot 的显示名称：移除人设后缀
         let account = ctx.client.account();
-        let current_name = account.get_display_name().await.ok().flatten().unwrap_or_else(|| "Aether".to_string());
+        let current_name = account
+            .get_display_name()
+            .await
+            .ok()
+            .flatten()
+            .unwrap_or_else(|| "Aether".to_string());
 
         // 移除人设后缀 (xxx)
         let base_name = current_name
@@ -157,7 +162,10 @@ impl PersonaHandler {
             tracing::warn!("恢复显示名称失败: {}", e);
         }
 
-        let html = success(&format!("已关闭当前房间的人设\nBot 名称已恢复为: {}", base_name));
+        let html = success(&format!(
+            "已关闭当前房间的人设\nBot 名称已恢复为: {}",
+            base_name
+        ));
         send_html(&ctx.room, &html).await
     }
 

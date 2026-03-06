@@ -237,7 +237,6 @@ impl PersonaStore {
         Ok(())
     }
 
-    /// 删除自定义人设
     pub fn delete_persona(&self, id: &str) -> Result<bool> {
         let conn = self.conn.lock().unwrap();
         let rows_affected = conn.execute(
@@ -246,5 +245,235 @@ impl PersonaStore {
         )?;
 
         Ok(rows_affected > 0)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rusqlite::Connection;
+    use tempfile::TempDir;
+
+    fn create_test_store() -> (PersonaStore, TempDir) {
+        let temp_dir = TempDir::new().unwrap();
+        let db_path = temp_dir.path().join("test.db");
+        let conn = Connection::open(&db_path).unwrap();
+
+        conn.execute_batch(include_str!("../../migrations/20260305000000_init.sql"))
+            .unwrap();
+
+        (PersonaStore::new(Arc::new(Mutex::new(conn))), temp_dir)
+    }
+
+    #[test]
+    fn test_init_builtin_personas_creates_4_personas() {
+        let (store, _temp_dir) = create_test_store();
+        store.init_builtin_personas().unwrap();
+
+        let personas = store.get_all().unwrap();
+        assert_eq!(personas.len(), 4);
+    }
+
+    #[test]
+    fn test_init_builtin_personas_are_marked_as_builtin() {
+        let (store, _temp_dir) = create_test_store();
+        store.init_builtin_personas().unwrap();
+
+        let personas = store.get_all().unwrap();
+        for persona in personas {
+            assert!(persona.is_builtin);
+        }
+    }
+
+    #[test]
+    fn test_init_builtin_personas_idempotent() {
+        let (store, _temp_dir) = create_test_store();
+
+        store.init_builtin_personas().unwrap();
+        let first_count = store.get_all().unwrap().len();
+
+        store.init_builtin_personas().unwrap();
+        let second_count = store.get_all().unwrap().len();
+
+        assert_eq!(first_count, second_count);
+    }
+
+    #[test]
+    fn test_builtin_personas_have_valid_data() {
+        let (store, _temp_dir) = create_test_store();
+        store.init_builtin_personas().unwrap();
+
+        let personas = store.get_all().unwrap();
+        for persona in personas {
+            assert!(!persona.id.is_empty());
+            assert!(!persona.name.is_empty());
+            assert!(!persona.system_prompt.is_empty());
+        }
+    }
+
+    #[test]
+    fn test_get_all_returns_empty_when_no_personas() {
+        let (store, _temp_dir) = create_test_store();
+        let personas = store.get_all().unwrap();
+        assert!(personas.is_empty());
+    }
+
+    #[test]
+    fn test_get_all_returns_builtin_first() {
+        let (store, _temp_dir) = create_test_store();
+        store.init_builtin_personas().unwrap();
+
+        let custom_persona = Persona {
+            id: "aaa-custom".to_string(),
+            name: "A Custom".to_string(),
+            system_prompt: "Custom prompt".to_string(),
+            avatar_emoji: None,
+            is_builtin: false,
+            created_by: None,
+        };
+        store.create_persona(&custom_persona).unwrap();
+
+        let personas = store.get_all().unwrap();
+        assert_eq!(personas.len(), 5);
+
+        for persona in &personas[..4] {
+            assert!(persona.is_builtin);
+        }
+        assert!(!personas[4].is_builtin);
+    }
+
+    #[test]
+    fn test_get_by_id_returns_persona() {
+        let (store, _temp_dir) = create_test_store();
+        store.init_builtin_personas().unwrap();
+
+        let persona = store.get_by_id("sarcastic-dev").unwrap();
+        assert!(persona.is_some());
+        assert_eq!(persona.unwrap().name, "毒舌程序员");
+    }
+
+    #[test]
+    fn test_get_by_id_returns_none_for_nonexistent() {
+        let (store, _temp_dir) = create_test_store();
+        let persona = store.get_by_id("nonexistent").unwrap();
+        assert!(persona.is_none());
+    }
+
+    #[test]
+    fn test_create_persona_success() {
+        let (store, _temp_dir) = create_test_store();
+
+        let persona = Persona {
+            id: "custom-1".to_string(),
+            name: "Custom Persona".to_string(),
+            system_prompt: "You are custom.".to_string(),
+            avatar_emoji: Some("🎯".to_string()),
+            is_builtin: false,
+            created_by: Some("@user:matrix.org".to_string()),
+        };
+
+        store.create_persona(&persona).unwrap();
+
+        let retrieved = store.get_by_id("custom-1").unwrap().unwrap();
+        assert_eq!(retrieved.name, "Custom Persona");
+        assert_eq!(retrieved.created_by, Some("@user:matrix.org".to_string()));
+    }
+
+    #[test]
+    fn test_create_persona_sets_is_builtin_false() {
+        let (store, _temp_dir) = create_test_store();
+
+        let persona = Persona {
+            id: "custom-2".to_string(),
+            name: "Custom".to_string(),
+            system_prompt: "Prompt".to_string(),
+            avatar_emoji: None,
+            is_builtin: true,
+            created_by: None,
+        };
+
+        store.create_persona(&persona).unwrap();
+
+        let retrieved = store.get_by_id("custom-2").unwrap().unwrap();
+        assert!(!retrieved.is_builtin);
+    }
+
+    #[test]
+    fn test_delete_persona_removes_custom_persona() {
+        let (store, _temp_dir) = create_test_store();
+
+        let persona = Persona {
+            id: "to-delete".to_string(),
+            name: "To Delete".to_string(),
+            system_prompt: "Will be deleted".to_string(),
+            avatar_emoji: None,
+            is_builtin: false,
+            created_by: None,
+        };
+        store.create_persona(&persona).unwrap();
+
+        let deleted = store.delete_persona("to-delete").unwrap();
+        assert!(deleted);
+
+        let retrieved = store.get_by_id("to-delete").unwrap();
+        assert!(retrieved.is_none());
+    }
+
+    #[test]
+    fn test_delete_persona_fails_for_builtin() {
+        let (store, _temp_dir) = create_test_store();
+        store.init_builtin_personas().unwrap();
+
+        let deleted = store.delete_persona("sarcastic-dev").unwrap();
+        assert!(!deleted);
+
+        let still_exists = store.get_by_id("sarcastic-dev").unwrap();
+        assert!(still_exists.is_some());
+    }
+
+    #[test]
+    fn test_set_room_persona_creates_association() {
+        let (store, _temp_dir) = create_test_store();
+        store.init_builtin_personas().unwrap();
+
+        store
+            .set_room_persona("!room1:matrix.org", "sarcastic-dev", "@user:matrix.org")
+            .unwrap();
+
+        let persona = store.get_room_persona("!room1:matrix.org").unwrap();
+        assert!(persona.is_some());
+        assert_eq!(persona.unwrap().id, "sarcastic-dev");
+    }
+
+    #[test]
+    fn test_get_room_persona_returns_set_persona() {
+        let (store, _temp_dir) = create_test_store();
+        store.init_builtin_personas().unwrap();
+
+        store
+            .set_room_persona("!room2:matrix.org", "cyber-zen", "@user:matrix.org")
+            .unwrap();
+
+        let persona = store.get_room_persona("!room2:matrix.org").unwrap();
+        assert!(persona.is_some());
+        assert_eq!(persona.unwrap().id, "cyber-zen");
+    }
+
+    #[test]
+    fn test_disable_room_persona_sets_enabled_false() {
+        let (store, _temp_dir) = create_test_store();
+        store.init_builtin_personas().unwrap();
+
+        store
+            .set_room_persona("!room3:matrix.org", "wiki-chan", "@user:matrix.org")
+            .unwrap();
+
+        let before = store.get_room_persona("!room3:matrix.org").unwrap();
+        assert!(before.is_some());
+
+        store.disable_room_persona("!room3:matrix.org").unwrap();
+
+        let after = store.get_room_persona("!room3:matrix.org").unwrap();
+        assert!(after.is_none());
     }
 }

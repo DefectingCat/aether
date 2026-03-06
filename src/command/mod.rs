@@ -10,6 +10,5 @@ mod registry;
 
 pub use context::CommandContext;
 pub use gateway::CommandGateway;
-pub use parser::{ParsedCommand, Parser};
 pub use permission::Permission;
-pub use registry::{CommandHandler, CommandRegistry};
+pub use registry::CommandHandler;

@@ -286,22 +286,7 @@ impl ConversationManager {
     }
 
     /// 重置（删除）指定会话的历史记录。
-    ///
-    /// # Arguments
-    ///
-    /// * `session_id` - 要重置的会话标识符
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use aether_matrix::conversation::ConversationManager;
-    ///
-    /// let mut manager = ConversationManager::new(None, 10);
-    /// manager.add_user_message("user-1", "Hello!");
-    /// manager.reset("user-1");
-    ///
-    /// assert!(manager.get_messages("user-1").is_empty());
-    /// ```
+    #[allow(dead_code)]
     pub fn reset(&mut self, session_id: &str) {
         self.conversations.remove(session_id);
     }

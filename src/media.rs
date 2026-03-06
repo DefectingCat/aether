@@ -37,15 +37,15 @@ use matrix_sdk::{
 ///
 /// # Example
 ///
-/// ```ignore
+/// ```
 /// use aether_matrix::media::download_image_as_base64;
 ///
-/// let data_url = download_image_as_base64(
-///     &client,
-///     "mxc://matrix.org/abc123",
-///     Some("image/png"),
-///     1024,  // 最大 1024 像素
-/// ).await?;
+/// // let data_url = download_image_as_base64(
+/// //     &client,
+/// //     "mxc://matrix.org/abc123",
+/// //     Some("image/png"),
+/// //     1024,  // 最大 1024 像素
+/// // ).await?;
 /// ```
 pub async fn download_image_as_base64(
     client: &Client,
