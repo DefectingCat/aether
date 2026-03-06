@@ -102,6 +102,8 @@ struct AiServiceInner {
     vision_model: String,
     /// 会话管理器（使用 RwLock 支持并发读写）
     conversation: Arc<RwLock<ConversationManager>>,
+    /// MCP 工具管理器（可选）
+    mcp_registry: Option<Arc<RwLock<crate::mcp::ToolRegistry>>>,
 }
 
 impl AiService {
@@ -127,6 +129,13 @@ impl AiService {
                     config.system_prompt.clone(),
                     config.max_history,
                 ))),
+                mcp_registry: if config.mcp.enabled {
+                    Some(Arc::new(RwLock::new(crate::mcp::ToolRegistry::new(
+                        &config.mcp.builtin_tools,
+                    ))))
+                } else {
+                    None
+                },
             }),
         }
     }

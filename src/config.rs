@@ -183,6 +183,12 @@ pub struct Config {
     /// 用于通过代理服务器连接 Matrix 和 OpenAI API。
     /// 格式为 `http://host:port` 或 `socks5://host:port`。
     pub proxy: Option<String>,
+
+    // --- MCP 配置 ---
+    /// MCP (Model Context Protocol) 配置。
+    ///
+    /// 配置工具调用功能，包括内置工具和外部 MCP 服务器。
+    pub mcp: crate::mcp::McpConfig,
 }
 
 /// 为 `Config` 提供合理的默认值。
@@ -216,6 +222,8 @@ impl Default for Config {
             vision_model: None,
             vision_max_image_size: 1024,
             proxy: None,
+            // MCP 配置
+            mcp: crate::mcp::McpConfig::default(),
         }
     }
 }
@@ -368,6 +376,8 @@ impl Config {
                 .unwrap_or(1024),
             // 代理配置
             proxy: std::env::var("PROXY").ok(),
+            // MCP 配置
+            mcp: crate::mcp::McpConfig::from_env().unwrap_or_default(),
         })
     }
 }

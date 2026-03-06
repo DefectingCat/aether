@@ -681,6 +681,7 @@ mod tests {
             vision_model: None,
             vision_max_image_size: 1024,
             proxy: None,
+            mcp: crate::mcp::McpConfig::default(),
         };
         let bot_user_id = user_id!("@bot:matrix.org").to_owned();
         let rt = tokio::runtime::Runtime::new().unwrap();
