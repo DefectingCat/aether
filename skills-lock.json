@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "skills": {
+    "m15-anti-pattern": {
+      "source": "zhanghandong/rust-skills",
+      "sourceType": "github",
+      "computedHash": "d9f5d80bd2ab49f063a61d90a96100298788ea0e1e5bd5e917be3c7e124078a2"
+    },
+    "rust-mcp-server-generator": {
+      "source": "github/awesome-copilot",
+      "sourceType": "github",
+      "computedHash": "420ae9213c67ac826ea54fbc3d7571189d74f22f3dfda3645fd3c6f7277c4944"
+    }
+  }
+}
