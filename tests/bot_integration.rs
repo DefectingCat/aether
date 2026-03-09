@@ -7,77 +7,90 @@ mod config_tests {
     fn test_config_default_values() {
         let config = Config::default();
 
-        assert_eq!(config.matrix_homeserver, "https://matrix.org");
-        assert_eq!(config.matrix_username, "");
-        assert_eq!(config.matrix_password, "");
-        assert_eq!(config.matrix_device_id, None);
-        assert_eq!(config.device_display_name, "AI Bot");
-        assert_eq!(config.store_path, "./store");
-        assert_eq!(config.openai_api_key, "");
-        assert_eq!(config.openai_base_url, "https://api.openai.com/v1");
-        assert_eq!(config.openai_model, "gpt-4o-mini");
-        assert_eq!(config.system_prompt, None);
-        assert_eq!(config.command_prefix, "!");
-        assert_eq!(config.max_history, 10);
-        assert!(config.streaming_enabled);
-        assert_eq!(config.streaming_min_interval_ms, 1000);
-        assert_eq!(config.streaming_min_chars, 50);
-        assert_eq!(config.log_level, "info");
-        assert!(config.vision_enabled);
-        assert_eq!(config.vision_model, None);
-        assert_eq!(config.vision_max_image_size, 1024);
+        assert_eq!(config.matrix.homeserver, "");
+        assert_eq!(config.matrix.username, "");
+        assert_eq!(config.matrix.password, "");
+        assert_eq!(config.matrix.device_id, None);
+        assert_eq!(config.matrix.device_display_name, "AI Bot");
+        assert_eq!(config.matrix.store_path, "./store");
+        assert_eq!(config.openai.api_key, "");
+        assert_eq!(config.openai.base_url, "https://api.openai.com/v1");
+        assert_eq!(config.openai.model, "gpt-4o-mini");
+        assert_eq!(config.openai.system_prompt, None);
+        assert_eq!(config.bot.command_prefix, "!");
+        assert_eq!(config.bot.max_history, 10);
+        assert!(config.streaming.enabled);
+        assert_eq!(config.streaming.min_interval_ms, 1000);
+        assert_eq!(config.streaming.min_chars, 50);
+        assert_eq!(config.log.level, "info");
+        assert!(config.vision.enabled);
+        assert_eq!(config.vision.model, None);
+        assert_eq!(config.vision.max_image_size, 1024);
     }
 
     #[test]
     fn test_config_can_be_cloned() {
         let config = Config::default();
         let cloned = config.clone();
-        assert_eq!(config.matrix_homeserver, cloned.matrix_homeserver);
+        assert_eq!(config.matrix.homeserver, cloned.matrix.homeserver);
     }
 
     #[test]
     fn test_config_debug_impl() {
         let config = Config::default();
         let debug_str = format!("{:?}", config);
-        assert!(debug_str.contains("matrix_homeserver"));
+        assert!(debug_str.contains("homeserver"));
     }
 
     #[test]
     fn test_config_custom_values() {
         let config = Config {
-            matrix_homeserver: "https://custom.server".to_string(),
-            matrix_username: "custom_user".to_string(),
-            matrix_password: "custom_pass".to_string(),
-            matrix_device_id: Some("DEVICE123".to_string()),
-            device_display_name: "Custom Bot".to_string(),
-            store_path: "/tmp/custom_store".to_string(),
-            openai_api_key: "sk-custom".to_string(),
-            openai_base_url: "https://custom.api/v1".to_string(),
-            openai_model: "custom-model".to_string(),
-            system_prompt: Some("You are helpful".to_string()),
-            command_prefix: "!custom".to_string(),
-            max_history: 20,
-            bot_owners: vec!["@admin:matrix.org".to_string()],
-            db_path: "./data/aether.db".to_string(),
-            streaming_enabled: false,
-            streaming_min_interval_ms: 2000,
-            streaming_min_chars: 100,
-            log_level: "debug".to_string(),
-            vision_enabled: false,
-            vision_model: Some("gpt-4o".to_string()),
-            vision_max_image_size: 2048,
+            matrix: aether_matrix::config::MatrixConfig {
+                homeserver: "https://custom.server".to_string(),
+                username: "custom_user".to_string(),
+                password: "custom_pass".to_string(),
+                device_id: Some("DEVICE123".to_string()),
+                device_display_name: "Custom Bot".to_string(),
+                store_path: "/tmp/custom_store".to_string(),
+            },
+            openai: aether_matrix::config::OpenAiConfig {
+                api_key: "sk-custom".to_string(),
+                base_url: "https://custom.api/v1".to_string(),
+                model: "custom-model".to_string(),
+                system_prompt: Some("You are helpful".to_string()),
+            },
+            bot: aether_matrix::config::BotConfig {
+                command_prefix: "!custom".to_string(),
+                max_history: 20,
+                owners: vec!["@admin:matrix.org".to_string()],
+                db_path: "./data/aether.db".to_string(),
+            },
+            streaming: aether_matrix::config::StreamingConfig {
+                enabled: false,
+                min_interval_ms: 2000,
+                min_chars: 100,
+            },
+            vision: aether_matrix::config::VisionConfig {
+                enabled: false,
+                model: Some("gpt-4o".to_string()),
+                max_image_size: 2048,
+            },
+            log: aether_matrix::config::LogConfig {
+                level: "debug".to_string(),
+            },
             proxy: None,
+            mcp: aether_matrix::mcp::McpConfig::default(),
         };
 
-        assert_eq!(config.matrix_homeserver, "https://custom.server");
-        assert_eq!(config.matrix_username, "custom_user");
-        assert_eq!(config.matrix_device_id, Some("DEVICE123".to_string()));
-        assert_eq!(config.store_path, "/tmp/custom_store");
-        assert_eq!(config.openai_model, "custom-model");
-        assert_eq!(config.max_history, 20);
-        assert!(!config.streaming_enabled);
-        assert!(!config.vision_enabled);
-        assert_eq!(config.vision_model, Some("gpt-4o".to_string()));
+        assert_eq!(config.matrix.homeserver, "https://custom.server");
+        assert_eq!(config.matrix.username, "custom_user");
+        assert_eq!(config.matrix.device_id, Some("DEVICE123".to_string()));
+        assert_eq!(config.matrix.store_path, "/tmp/custom_store");
+        assert_eq!(config.openai.model, "custom-model");
+        assert_eq!(config.bot.max_history, 20);
+        assert!(!config.streaming.enabled);
+        assert!(!config.vision.enabled);
+        assert_eq!(config.vision.model, Some("gpt-4o".to_string()));
     }
 }
 
@@ -86,31 +99,43 @@ mod bot_tests {
     use aether_matrix::bot::Bot;
     use tempfile::TempDir;
 
-    /// 创建测试用的 Config，使用独立的 store 路径
     fn create_test_config(homeserver: &str, store_path: &str) -> Config {
         Config {
-            matrix_homeserver: homeserver.to_string(),
-            matrix_username: "test_user".to_string(),
-            matrix_password: "test_password".to_string(),
-            matrix_device_id: None,
-            device_display_name: "Test Bot".to_string(),
-            store_path: store_path.to_string(),
-            openai_api_key: "sk-test-key".to_string(),
-            openai_base_url: "https://api.openai.com/v1".to_string(),
-            openai_model: "gpt-4o-mini".to_string(),
-            system_prompt: None,
-            command_prefix: "!ai".to_string(),
-            max_history: 10,
-            bot_owners: vec![],
-            db_path: "./data/aether.db".to_string(),
-            streaming_enabled: false,
-            streaming_min_interval_ms: 500,
-            streaming_min_chars: 10,
-            log_level: "info".to_string(),
-            vision_enabled: true,
-            vision_model: None,
-            vision_max_image_size: 1024,
+            matrix: aether_matrix::config::MatrixConfig {
+                homeserver: homeserver.to_string(),
+                username: "test_user".to_string(),
+                password: "test_password".to_string(),
+                device_id: None,
+                device_display_name: "Test Bot".to_string(),
+                store_path: store_path.to_string(),
+            },
+            openai: aether_matrix::config::OpenAiConfig {
+                api_key: "sk-test-key".to_string(),
+                base_url: "https://api.openai.com/v1".to_string(),
+                model: "gpt-4o-mini".to_string(),
+                system_prompt: None,
+            },
+            bot: aether_matrix::config::BotConfig {
+                command_prefix: "!ai".to_string(),
+                max_history: 10,
+                owners: vec![],
+                db_path: "./data/aether.db".to_string(),
+            },
+            streaming: aether_matrix::config::StreamingConfig {
+                enabled: false,
+                min_interval_ms: 500,
+                min_chars: 10,
+            },
+            vision: aether_matrix::config::VisionConfig {
+                enabled: true,
+                model: None,
+                max_image_size: 1024,
+            },
+            log: aether_matrix::config::LogConfig {
+                level: "info".to_string(),
+            },
             proxy: None,
+            mcp: aether_matrix::mcp::McpConfig::default(),
         }
     }
 
@@ -119,7 +144,6 @@ mod bot_tests {
         let temp_dir = TempDir::new().expect("Failed to create temp dir");
         let store_path = temp_dir.path().join("store").to_string_lossy().to_string();
 
-        // 使用无效的 URL
         let config = create_test_config("not-a-valid-url", &store_path);
 
         let result = Bot::new(config).await;

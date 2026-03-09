@@ -1,6 +1,4 @@
 //! 事件处理集成测试
-//!
-//! 使用 Mock AiService 测试 EventHandler 的核心功能
 
 use aether_matrix::config::Config;
 use aether_matrix::traits::{AiServiceTrait, ChatStreamResponse};
@@ -8,11 +6,6 @@ use anyhow::Result;
 use std::sync::Arc;
 use tokio::sync::{Mutex, RwLock};
 
-// ============================================================================
-// Mock AiService
-// ============================================================================
-
-/// 用于测试的 Mock AI 服务
 #[derive(Clone)]
 struct MockAiService {
     responses: Arc<RwLock<Vec<String>>>,
@@ -102,40 +95,46 @@ impl AiServiceTrait for MockAiService {
         anyhow::bail!("Streaming not supported in mock")
     }
 }
-// ============================================================================
-// 测试辅助函数
-// ============================================================================
 
 fn create_test_config() -> Config {
     Config {
-        matrix_homeserver: "https://matrix.org".to_string(),
-        matrix_username: "test".to_string(),
-        matrix_password: "test".to_string(),
-        matrix_device_id: None,
-        device_display_name: "Test Bot".to_string(),
-        store_path: "./store".to_string(),
-        openai_api_key: "test".to_string(),
-        openai_base_url: "https://api.openai.com/v1".to_string(),
-        openai_model: "gpt-4o-mini".to_string(),
-        system_prompt: None,
-        command_prefix: "!ai".to_string(),
-        max_history: 10,
-        bot_owners: vec![],
-        db_path: "./data/aether.db".to_string(),
-        streaming_enabled: false,
-        streaming_min_interval_ms: 500,
-        streaming_min_chars: 10,
-        log_level: "info".to_string(),
-        vision_enabled: true,
-        vision_model: None,
-        vision_max_image_size: 1024,
+        matrix: aether_matrix::config::MatrixConfig {
+            homeserver: "https://matrix.org".to_string(),
+            username: "test".to_string(),
+            password: "test".to_string(),
+            device_id: None,
+            device_display_name: "Test Bot".to_string(),
+            store_path: "./store".to_string(),
+        },
+        openai: aether_matrix::config::OpenAiConfig {
+            api_key: "test".to_string(),
+            base_url: "https://api.openai.com/v1".to_string(),
+            model: "gpt-4o-mini".to_string(),
+            system_prompt: None,
+        },
+        bot: aether_matrix::config::BotConfig {
+            command_prefix: "!ai".to_string(),
+            max_history: 10,
+            owners: vec![],
+            db_path: "./data/aether.db".to_string(),
+        },
+        streaming: aether_matrix::config::StreamingConfig {
+            enabled: false,
+            min_interval_ms: 500,
+            min_chars: 10,
+        },
+        vision: aether_matrix::config::VisionConfig {
+            enabled: true,
+            model: None,
+            max_image_size: 1024,
+        },
+        log: aether_matrix::config::LogConfig {
+            level: "info".to_string(),
+        },
         proxy: None,
+        mcp: aether_matrix::mcp::McpConfig::default(),
     }
 }
-
-// ============================================================================
-// MockAiService 测试
-// ============================================================================
 
 mod mock_ai_service_tests {
     use super::*;
@@ -175,7 +174,7 @@ mod mock_ai_service_tests {
         let result_b = ai.chat("session-b", "Hello B").await.unwrap();
 
         assert_eq!(result_a, "Response for session A");
-        assert_eq!(result_b, "Response for session A"); // 使用相同的预设响应
+        assert_eq!(result_b, "Response for session A");
     }
 
     #[tokio::test(flavor = "multi_thread")]
@@ -217,10 +216,6 @@ mod mock_ai_service_tests {
     }
 }
 
-// ============================================================================
-// Config 测试
-// ============================================================================
-
 mod config_tests {
     use super::*;
 
@@ -228,10 +223,10 @@ mod config_tests {
     fn test_config_defaults() {
         let config = create_test_config();
 
-        assert_eq!(config.command_prefix, "!ai");
-        assert!(!config.streaming_enabled); // 测试配置中关闭了流式
-        assert_eq!(config.max_history, 10);
-        assert!(config.vision_enabled);
-        assert_eq!(config.vision_max_image_size, 1024);
+        assert_eq!(config.bot.command_prefix, "!ai");
+        assert!(!config.streaming.enabled);
+        assert_eq!(config.bot.max_history, 10);
+        assert!(config.vision.enabled);
+        assert_eq!(config.vision.max_image_size, 1024);
     }
 }

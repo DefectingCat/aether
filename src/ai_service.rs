@@ -104,8 +104,10 @@ struct AiServiceInner {
     /// 会话管理器（使用 RwLock 支持并发读写）
     conversation: Arc<RwLock<ConversationManager>>,
     /// MCP 工具注册表（可选）
+    #[allow(dead_code)]
     mcp_registry: Option<Arc<RwLock<crate::mcp::ToolRegistry>>>,
     /// MCP 服务器管理器（可选）
+    #[allow(dead_code)]
     mcp_server_manager: Option<Arc<RwLock<McpServerManager>>>,
 }
 
@@ -207,16 +209,7 @@ impl AiService {
     ///
     /// 如果 MCP 启用且有可用工具，AI 可以自动调用工具来完成任务。
     /// 工具调用会自动循环，直到 AI 返回最终文本回复。
-    ///
-    /// # Arguments
-    ///
-    /// * `session_id` - 会话标识符
-    /// * `prompt` - 用户输入的消息内容
-    /// * `system_prompt` - 自定义系统提示词（可选）
-    ///
-    /// # Returns
-    ///
-    /// 成功时返回 AI 的最终回复文本。
+    #[allow(dead_code)]
     pub async fn chat_with_tools(
         &self,
         session_id: &str,
@@ -439,6 +432,7 @@ impl AiService {
     }
 
     /// 获取 MCP 工具注册表（如果启用）
+    #[allow(dead_code)]
     pub fn inner_mcp_registry(&self) -> Option<Arc<RwLock<crate::mcp::ToolRegistry>>> {
         self.inner.mcp_registry.clone()
     }

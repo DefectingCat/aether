@@ -258,10 +258,10 @@ impl McpServerManager {
             
             handles.push(tokio::spawn(async move {
                 let mut server = server.write().await;
-                if server.should_retry() {
-                    if let Err(e) = server.connect().await {
-                        warn!("Failed to connect to MCP server {}: {}", name, e);
-                    }
+                if server.should_retry()
+                    && let Err(e) = server.connect().await
+                {
+                    warn!("Failed to connect to MCP server {}: {}", name, e);
                 }
             }));
         }

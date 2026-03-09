@@ -342,16 +342,7 @@ impl ConversationManager {
     }
 
     /// 添加工具调用消息（assistant 调用工具）
-    ///
-    /// 当 AI 决定调用工具时，需要记录这个工具调用消息。
-    /// 这个消息会包含工具调用的 ID、名称和参数。
-    ///
-    /// # Arguments
-    ///
-    /// * `session_id` - 会话标识符
-    /// * `tool_call_id` - 工具调用 ID
-    /// * `tool_name` - 工具名称
-    /// * `arguments` - 工具参数（JSON 格式）
+    #[allow(dead_code)]
     pub fn add_tool_call_message(
         &mut self,
         session_id: &str,
@@ -402,15 +393,7 @@ impl ConversationManager {
     }
 
     /// 添加工具结果消息（tool 返回结果）
-    ///
-    /// 工具执行完成后，需要将结果添加到会话历史。
-    /// 这个消息会包含工具调用的 ID 和执行结果。
-    ///
-    /// # Arguments
-    ///
-    /// * `session_id` - 会话标识符
-    /// * `tool_call_id` - 工具调用 ID（对应 add_tool_call_message 中的 ID）
-    /// * `result` - 工具执行结果
+    #[allow(dead_code)]
     pub fn add_tool_result_message(
         &mut self,
         session_id: &str,

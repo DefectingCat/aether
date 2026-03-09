@@ -4,7 +4,7 @@
 //!
 //! ## 核心类型
 //!
-//! - [`Config`]: 配置结构体，包含所有配置项
+//! - [`Config`] - 配置结构体，包含所有配置项
 //!
 //! ## 配置来源
 //!
@@ -66,7 +66,7 @@ use serde::Deserialize;
 /// assert!(!config.matrix.homeserver.is_empty());
 /// assert!(!config.openai.api_key.is_empty());
 /// ```
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Default)]
 pub struct Config {
     /// Matrix 连接配置
     #[serde(default)]
@@ -353,21 +353,6 @@ impl Default for LogConfig {
     }
 }
 
-impl Default for Config {
-    fn default() -> Self {
-        Self {
-            matrix: MatrixConfig::default(),
-            openai: OpenAiConfig::default(),
-            bot: BotConfig::default(),
-            streaming: StreamingConfig::default(),
-            vision: VisionConfig::default(),
-            log: LogConfig::default(),
-            proxy: None,
-            mcp: crate::mcp::McpConfig::default(),
-        }
-    }
-}
-
 impl Config {
     /// 从配置文件和环境变量加载配置。
     ///
@@ -467,10 +452,10 @@ impl Config {
         if let Ok(v) = std::env::var("BOT_COMMAND_PREFIX") {
             self.bot.command_prefix = v;
         }
-        if let Ok(v) = std::env::var("MAX_HISTORY") {
-            if let Ok(n) = v.parse() {
-                self.bot.max_history = n;
-            }
+        if let Ok(v) = std::env::var("MAX_HISTORY")
+            && let Ok(n) = v.parse()
+        {
+            self.bot.max_history = n;
         }
         if let Ok(v) = std::env::var("BOT_OWNERS") {
             self.bot.owners = v.split(',').map(|s| s.trim().to_string()).collect();
@@ -483,15 +468,15 @@ impl Config {
         if let Ok(v) = std::env::var("STREAMING_ENABLED") {
             self.streaming.enabled = v.to_lowercase() != "false";
         }
-        if let Ok(v) = std::env::var("STREAMING_MIN_INTERVAL_MS") {
-            if let Ok(n) = v.parse() {
-                self.streaming.min_interval_ms = n;
-            }
+        if let Ok(v) = std::env::var("STREAMING_MIN_INTERVAL_MS")
+            && let Ok(n) = v.parse()
+        {
+            self.streaming.min_interval_ms = n;
         }
-        if let Ok(v) = std::env::var("STREAMING_MIN_CHARS") {
-            if let Ok(n) = v.parse() {
-                self.streaming.min_chars = n;
-            }
+        if let Ok(v) = std::env::var("STREAMING_MIN_CHARS")
+            && let Ok(n) = v.parse()
+        {
+            self.streaming.min_chars = n;
         }
 
         // Vision 配置
@@ -501,10 +486,10 @@ impl Config {
         if let Ok(v) = std::env::var("VISION_MODEL") {
             self.vision.model = Some(v);
         }
-        if let Ok(v) = std::env::var("VISION_MAX_IMAGE_SIZE") {
-            if let Ok(n) = v.parse() {
-                self.vision.max_image_size = n;
-            }
+        if let Ok(v) = std::env::var("VISION_MAX_IMAGE_SIZE")
+            && let Ok(n) = v.parse()
+        {
+            self.vision.max_image_size = n;
         }
 
         // 日志配置
@@ -554,8 +539,7 @@ impl Config {
     }
 
     /// 向后兼容方法：从环境变量加载配置。
-    ///
-    /// 内部调用 `load("config.toml")`。
+    #[allow(dead_code)]
     pub fn from_env() -> Result<Self> {
         Self::load("config.toml")
     }

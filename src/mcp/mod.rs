@@ -11,18 +11,26 @@
 //!
 //! ## 模块结构
 //!
-//! - [`tool_registry`][]: 工具注册表，统一管理所有工具
-//! - [`config`][]: MCP 配置管理
-//! - [`builtin`][]: 内置工具实现
-//! - [`transport`][]: MCP 传输层（Stdio/HTTP/SSE）
-//! - [`server_manager`][]: MCP 服务器管理器
+//! - [`tool_registry`] - 工具注册表，统一管理所有工具
+//! - [`config`] - MCP 配置管理
+//! - [`builtin`] - 内置工具实现
+//! - [`transport`] - MCP 传输层（Stdio/HTTP/SSE）
+//! - [`server_manager`] - MCP 服务器管理器
 
+#[allow(dead_code)]
 pub mod builtin;
 pub mod config;
+#[allow(dead_code)]
 pub mod tool_registry;
+#[allow(dead_code)]
 pub mod transport;
+#[allow(dead_code)]
 pub mod server_manager;
 
-pub use config::{McpConfig, BuiltinToolsConfig, WebFetchConfig, ExternalServerConfig, TransportType};
+pub use config::{McpConfig, BuiltinToolsConfig, WebFetchConfig};
+#[allow(unused_imports)]
+pub use config::{ExternalServerConfig, TransportType};
+#[allow(unused_imports)]
 pub use tool_registry::{Tool, ToolDefinition, ToolResult, ToolSource, ToolRegistry};
+#[allow(unused_imports)]
 pub use server_manager::{McpServerManager, ServerStatus, McpServer};

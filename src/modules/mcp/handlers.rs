@@ -147,7 +147,7 @@ impl McpHandler {
         }
         
         if let Some(manager) = &self.mcp_manager {
-            let mut manager = manager.write().await;
+            let manager = manager.write().await;
             
             // TODO: 实现配置重载逻辑，需要从配置文件重新加载
             let html = warning("配置重载功能尚未完全实现");

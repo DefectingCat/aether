@@ -120,6 +120,7 @@ pub struct ExternalServerConfig {
 
     /// HTTP/SSE 传输：URL
     #[serde(skip_serializing_if = "Option::is_none")]
+    #[allow(dead_code)]
     pub url: Option<String>,
 }
 
@@ -181,15 +182,15 @@ impl WebFetchConfig {
         if let Ok(v) = std::env::var("MCP_BUILTIN_WEB_FETCH_ENABLED") {
             self.enabled = v.to_lowercase() != "false";
         }
-        if let Ok(v) = std::env::var("MCP_BUILTIN_WEB_FETCH_MAX_LENGTH") {
-            if let Ok(n) = v.parse() {
-                self.max_length = n;
-            }
+        if let Ok(v) = std::env::var("MCP_BUILTIN_WEB_FETCH_MAX_LENGTH")
+            && let Ok(n) = v.parse()
+        {
+            self.max_length = n;
         }
-        if let Ok(v) = std::env::var("MCP_BUILTIN_WEB_FETCH_TIMEOUT") {
-            if let Ok(n) = v.parse() {
-                self.timeout = n;
-            }
+        if let Ok(v) = std::env::var("MCP_BUILTIN_WEB_FETCH_TIMEOUT")
+            && let Ok(n) = v.parse()
+        {
+            self.timeout = n;
         }
     }
 }

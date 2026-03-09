@@ -35,9 +35,9 @@ scraper = "0.25"
 regex = "1"
 url = "2.5"
 rmcp = { version = "1.1.0", features = [
-  "client",
-  "transport-child-process",
-  "schemars"
+    "client",
+    "transport-child-process",
+    "schemars",
 ] }
 
 [dev-dependencies]
@@ -54,7 +54,7 @@ serial_test = "3"
 [profile.release]
 opt-level = 3 # 最高优化级别
 # lto = "fat"       # 链接时优化，跨 crate 全局优化
-lto = true              # 链接时优化，跨 crate 全局优化
+# lto = true              # 链接时优化，跨 crate 全局优化
 codegen-units = 1       # 单个代码生成单元，允许更好的优化
 panic = "abort"         # abort 而非 unwind，减小二进制并提升性能
 strip = true            # 剥离符号信息，减小二进制大小

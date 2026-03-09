@@ -35,7 +35,6 @@ use crate::config::Config;
 use crate::media::download_image_as_base64;
 use crate::modules::admin::{BotInfoHandler, BotLeaveHandler, BotPingHandler};
 use crate::modules::persona::PersonaHandler;
-use crate::modules::mcp::McpHandler;
 use crate::store::PersonaStore;
 use crate::traits::AiServiceTrait;
 use matrix_sdk::ruma::events::room::message::MessageType;
