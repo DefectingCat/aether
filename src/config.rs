@@ -134,8 +134,8 @@ pub struct Config {
 
     /// 数据库文件路径。
     ///
-    /// 用于存储 Persona 等持久化数据。
-    /// 默认为 `./data/aether.db`。
+    /// 用于存储 Persona、Muyu 等持久化数据。
+    /// 默认为 `./store/aether.db`（与 Matrix SDK 存储放在一起）。
     pub db_path: String,
 
     // --- 流式输出配置 ---
@@ -205,7 +205,7 @@ impl Default for Config {
             command_prefix: "!".to_string(),
             max_history: 10,
             bot_owners: Vec::new(),
-            db_path: "./data/aether.db".to_string(),
+            db_path: "./store/aether.db".to_string(),
             streaming_enabled: true,
             streaming_min_interval_ms: 1000,
             streaming_min_chars: 50,
@@ -340,7 +340,7 @@ impl Config {
                 .ok()
                 .map(|s| s.split(',').map(|s| s.trim().to_string()).collect())
                 .unwrap_or_default(),
-            db_path: std::env::var("DB_PATH").unwrap_or_else(|_| "./data/aether.db".to_string()),
+            db_path: std::env::var("DB_PATH").unwrap_or_else(|_| "./store/aether.db".to_string()),
             // 流式输出配置
             streaming_enabled: std::env::var("STREAMING_ENABLED")
                 .ok()

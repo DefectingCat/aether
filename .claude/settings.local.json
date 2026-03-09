@@ -2,7 +2,9 @@
   "permissions": {
     "allow": [
       "Bash(make check)",
-      "Bash(make test)"
+      "Bash(make test)",
+      "Bash(cargo check)",
+      "Bash(cargo clean)"
     ]
   }
 }

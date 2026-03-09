@@ -44,6 +44,7 @@ use crate::ai_service::AiService;
 use crate::config::Config;
 use crate::event_handler::{EventHandler, handle_invite};
 use crate::store::{Database, PersonaStore};
+use crate::modules::muyu::MuyuStore;
 
 /// Matrix AI 机器人主结构体。
 ///
@@ -137,18 +138,19 @@ impl Bot {
 
         // 初始化数据库和 PersonaStore
         // 失败时降级运行，仅禁用 Persona 功能，不影响核心 AI 对话
-        let persona_store = match Database::new(&config.db_path) {
+        let (persona_store, muyu_store) = match Database::new(&config.db_path) {
             Ok(db) => {
                 info!("数据库初始化成功: {}", config.db_path);
-                let store = PersonaStore::new(db.conn().clone());
-                if let Err(e) = store.init_builtin_personas() {
+                let persona_store = PersonaStore::new(db.conn().clone());
+                if let Err(e) = persona_store.init_builtin_personas() {
                     tracing::warn!("初始化内置人设失败: {}", e);
                 }
-                Some(store)
+                let muyu_store = MuyuStore::new(db.conn().clone());
+                (Some(persona_store), Some(muyu_store))
             }
             Err(e) => {
-                tracing::warn!("数据库初始化失败，Persona 功能将不可用: {}", e);
-                None
+                tracing::warn!("数据库初始化失败，Persona 和 Muyu 功能将不可用: {}", e);
+                (None, None)
             }
         };
 
@@ -160,6 +162,7 @@ impl Bot {
             client.clone(),
             &config,
             persona_store,
+            muyu_store,
         );
 
         Ok(Self { client, handler })

@@ -2,3 +2,4 @@
 
 pub mod admin;
 pub mod persona;
+pub mod muyu;

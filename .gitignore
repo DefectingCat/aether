@@ -3,4 +3,6 @@
 .env.*
 /store/
 aether-matrix
-data/**/*.db
+*.db
+*.db-journal
+*.log

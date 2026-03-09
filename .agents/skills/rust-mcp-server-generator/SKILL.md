@@ -1,6 +1,6 @@
 ---
 name: rust-mcp-server-generator
-description: 'Generate a complete Rust Model Context Protocol server project with tools, prompts, resources, and tests using the official rmcp SDK'
+description: "Generate a complete Rust Model Context Protocol server project with tools, prompts, resources, and tests using the official rmcp SDK"
 ---
 
 # Rust MCP Server Generator
@@ -10,6 +10,7 @@ You are a Rust MCP server generator. Create a complete, production-ready Rust MC
 ## Project Requirements
 
 Ask the user for:
+
 1. **Project name** (e.g., "my-mcp-server")
 2. **Server description** (e.g., "A weather data MCP server")
 3. **Transport type** (stdio, sse, http, or all)
@@ -93,7 +94,7 @@ Cargo.lock
 
 ### README.md
 
-```markdown
+````markdown
 # {Project Name}
 
 {Server description}
@@ -103,6 +104,7 @@ Cargo.lock
 ```bash
 cargo build --release
 ```
+````
 
 ## Usage
 
@@ -156,7 +158,8 @@ Run with logging:
 ```bash
 RUST_LOG=debug cargo run
 ```
-```
+
+````
 
 ### src/main.rs
 
@@ -185,15 +188,15 @@ async fn main() -> Result<()> {
         .with_max_level(tracing::Level::INFO)
         .with_target(false)
         .init();
-    
+
     tracing::info!("Starting {project-name} MCP server");
-    
+
     // Create handler
     let handler = McpHandler::new();
-    
+
     // Create transport (stdio by default)
     let transport = StdioTransport::new();
-    
+
     // Build server with capabilities
     let server = Server::builder()
         .with_handler(handler)
@@ -204,16 +207,16 @@ async fn main() -> Result<()> {
             ..Default::default()
         })
         .build(transport)?;
-    
+
     tracing::info!("Server started, waiting for requests");
-    
+
     // Run server until Ctrl+C
     server.run(signal::ctrl_c()).await?;
-    
+
     tracing::info!("Server shutting down");
     Ok(())
 }
-```
+````
 
 ### src/handler.rs
 
@@ -246,7 +249,7 @@ impl McpHandler {
     async fn example_tool(params: Parameters<tools::ExampleParams>) -> Result<String, String> {
         tools::example::execute(params).await
     }
-    
+
     pub fn new() -> Self {
         Self {
             state: ServerState::new(),
@@ -276,10 +279,10 @@ impl ServerHandler for McpHandler {
                 ]),
             },
         ];
-        
+
         Ok(ListPromptsResult { prompts })
     }
-    
+
     async fn get_prompt(
         &self,
         request: GetPromptRequestParam,
@@ -291,7 +294,7 @@ impl ServerHandler for McpHandler {
                     .as_ref()
                     .and_then(|args| args.get("topic"))
                     .ok_or_else(|| ErrorData::invalid_params("topic required"))?;
-                
+
                 Ok(GetPromptResult {
                     description: Some("Example prompt".to_string()),
                     messages: vec![
@@ -302,7 +305,7 @@ impl ServerHandler for McpHandler {
             _ => Err(ErrorData::invalid_params("Unknown prompt")),
         }
     }
-    
+
     async fn list_resources(
         &self,
         _request: Option<PaginatedRequestParam>,
@@ -310,23 +313,23 @@ impl ServerHandler for McpHandler {
     ) -> Result<ListResourcesResult, ErrorData> {
         let resources = vec![
             Resource {
-                uri: "example://data/info".to_string(),
+                uri: "example://store/info".to_string(),
                 name: "Example Resource".to_string(),
                 description: Some("An example resource".to_string()),
                 mime_type: Some("text/plain".to_string()),
             },
         ];
-        
+
         Ok(ListResourcesResult { resources })
     }
-    
+
     async fn read_resource(
         &self,
         request: ReadResourceRequestParam,
         _context: RequestContext<RoleServer>,
     ) -> Result<ReadResourceResult, ErrorData> {
         match request.uri.as_str() {
-            "example://data/info" => {
+            "example://store/info" => {
                 Ok(ReadResourceResult {
                     contents: vec![
                         ResourceContents::text("Example resource content".to_string())
@@ -359,13 +362,13 @@ impl ServerState {
             counter: Arc::new(RwLock::new(0)),
         }
     }
-    
+
     pub async fn increment(&self) -> i32 {
         let mut counter = self.counter.write().await;
         *counter += 1;
         *counter
     }
-    
+
     pub async fn get(&self) -> i32 {
         *self.counter.read().await
     }
@@ -394,7 +397,7 @@ pub struct ExampleParams {
 
 pub async fn execute(params: Parameters<ExampleParams>) -> Result<String, String> {
     let input = &params.inner().input;
-    
+
     // Tool logic here
     Ok(format!("Processed: {}", input))
 }
@@ -402,13 +405,13 @@ pub async fn execute(params: Parameters<ExampleParams>) -> Result<String, String
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[tokio::test]
     async fn test_example_tool() {
         let params = Parameters::new(ExampleParams {
             input: "test".to_string(),
         });
-        
+
         let result = execute(params).await.unwrap();
         assert!(result.contains("test"));
     }
@@ -444,9 +447,9 @@ use my_mcp_server::handler::McpHandler;
 async fn test_list_tools() {
     let handler = McpHandler::new();
     let context = RequestContext::default();
-    
+
     let result = handler.list_tools(None, context).await.unwrap();
-    
+
     assert!(!result.tools.is_empty());
     assert!(result.tools.iter().any(|t| t.name == "example_tool"));
 }
@@ -455,14 +458,14 @@ async fn test_list_tools() {
 async fn test_call_tool() {
     let handler = McpHandler::new();
     let context = RequestContext::default();
-    
+
     let request = CallToolRequestParam {
         name: "example_tool".to_string(),
         arguments: Some(serde_json::json!({
             "input": "test"
         })),
     };
-    
+
     let result = handler.call_tool(request, context).await;
     assert!(result.is_ok());
 }
@@ -471,7 +474,7 @@ async fn test_call_tool() {
 async fn test_list_prompts() {
     let handler = McpHandler::new();
     let context = RequestContext::default();
-    
+
     let result = handler.list_prompts(None, context).await.unwrap();
     assert!(!result.prompts.is_empty());
 }
@@ -480,7 +483,7 @@ async fn test_list_prompts() {
 async fn test_list_resources() {
     let handler = McpHandler::new();
     let context = RequestContext::default();
-    
+
     let result = handler.list_resources(None, context).await.unwrap();
     assert!(!result.resources.is_empty());
 }

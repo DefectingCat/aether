@@ -9,7 +9,7 @@
 //!   - 零 style= 属性
 
 mod color {
-    pub const TITLE: &str = "#e8eeff";
+    pub const TITLE: &str = "#3164f0ff";
     pub const ACCENT: &str = "#6ea8ff";
     pub const KEY: &str = "#6a7fa8";
     pub const VALUE: &str = "#c8d4f0";

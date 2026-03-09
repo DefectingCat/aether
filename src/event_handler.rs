@@ -34,6 +34,9 @@ use crate::command::CommandGateway;
 use crate::config::Config;
 use crate::media::download_image_as_base64;
 use crate::modules::admin::{BotInfoHandler, BotLeaveHandler, BotPingHandler};
+use crate::modules::muyu::{
+    BagHandler, MeritHandler, MuyuHandler, MuyuStore, RankHandler, TitleHandler,
+};
 use crate::modules::persona::PersonaHandler;
 use crate::store::PersonaStore;
 use crate::traits::AiServiceTrait;
@@ -140,6 +143,7 @@ impl<T: AiServiceTrait> EventHandler<T> {
     /// - [`BotLeaveHandler`]\: 机器人离开房间
     /// - [`BotPingHandler`]\: Ping 测试
     /// - [`PersonaHandler`]\: 人设管理（如果数据库可用）
+    /// - [`MuyuHandler`]\: 赛博木鱼（如果数据库可用）
     ///
     /// # Arguments
     ///
@@ -148,6 +152,7 @@ impl<T: AiServiceTrait> EventHandler<T> {
     /// * `client` - Matrix 客户端实例
     /// * `config` - 机器人配置
     /// * `persona_store` - 人设存储（可选）
+    /// * `muyu_store` - 木鱼存储（可选）
     ///
     /// # Returns
     ///
@@ -158,6 +163,7 @@ impl<T: AiServiceTrait> EventHandler<T> {
         client: Client,
         config: &Config,
         persona_store: Option<PersonaStore>,
+        muyu_store: Option<MuyuStore>,
     ) -> Self {
         let mut command_gateway =
             CommandGateway::new(config.command_prefix.clone(), config.bot_owners.clone());
@@ -168,6 +174,14 @@ impl<T: AiServiceTrait> EventHandler<T> {
 
         if let Some(ref store) = persona_store {
             command_gateway.register(Arc::new(PersonaHandler::new(store.clone())));
+        }
+
+        if let Some(ref store) = muyu_store {
+            command_gateway.register(Arc::new(MuyuHandler::new(store.clone())));
+            command_gateway.register(Arc::new(MeritHandler::new(store.clone())));
+            command_gateway.register(Arc::new(RankHandler::new(store.clone())));
+            command_gateway.register(Arc::new(TitleHandler::new(store.clone())));
+            command_gateway.register(Arc::new(BagHandler::new(store.clone())));
         }
 
         Self {
@@ -672,7 +686,7 @@ mod tests {
             command_prefix: "!".to_string(),
             max_history: 10,
             bot_owners: Vec::new(),
-            db_path: "./data/aether.db".to_string(),
+            db_path: "./store/aether.db".to_string(),
             streaming_enabled: false,
             streaming_min_interval_ms: 500,
             streaming_min_chars: 10,
@@ -691,7 +705,7 @@ mod tests {
                 .await
                 .unwrap()
         });
-        EventHandler::new(MockAiService, bot_user_id, client, &config, None)
+        EventHandler::new(MockAiService, bot_user_id, client, &config, None, None)
     }
 
     #[test]
