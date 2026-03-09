@@ -26,7 +26,8 @@ pub struct MeritRecord {
     pub critical_count: i64,
     /// 连续打卡天数
     pub consecutive_days: i32,
-    /// 最后敲击日期
+    /// 最后敲击日期（用于判断是否新的一天，控制 merit_today 重置）
+    #[allow(dead_code)]
     pub last_hit_date: Option<chrono::NaiveDate>,
 }
 
@@ -147,10 +148,10 @@ impl Rarity {
     /// 获取显示颜色 (HTML 颜色代码)
     pub fn color(&self) -> &'static str {
         match self {
-            Rarity::Common => "#808080",     // 灰色
-            Rarity::Rare => "#4a90d9",       // 蓝色
-            Rarity::Epic => "#a855f7",       // 紫色
-            Rarity::Legendary => "#f0c060",  // 金色
+            Rarity::Common => "#808080",    // 灰色
+            Rarity::Rare => "#4a90d9",      // 蓝色
+            Rarity::Epic => "#a855f7",      // 紫色
+            Rarity::Legendary => "#f0c060", // 金色
         }
     }
 
@@ -168,11 +169,14 @@ impl Rarity {
 /// 掉落物品
 #[derive(Debug, Clone)]
 pub struct DropItem {
-    /// 物品 ID
+    /// 物品 ID（预留：物品使用/交易功能）
+    #[allow(dead_code)]
     pub id: i64,
-    /// 用户 ID
+    /// 用户 ID（预留：物品使用/交易功能）
+    #[allow(dead_code)]
     pub user_id: String,
-    /// 房间 ID
+    /// 房间 ID（预留：物品使用/交易功能）
+    #[allow(dead_code)]
     pub room_id: String,
     /// 物品名称
     pub item_name: String,
@@ -180,7 +184,8 @@ pub struct DropItem {
     pub item_icon: Option<String>,
     /// 稀有度
     pub rarity: Rarity,
-    /// 获取时间
+    /// 获取时间（预留：限时活动/成就系统）
+    #[allow(dead_code)]
     pub obtained_at: DateTime<Utc>,
 }
 
@@ -223,7 +228,8 @@ pub struct UserTitle {
     pub title: Title,
     /// 是否已装备
     pub equipped: bool,
-    /// 获取时间
+    /// 获取时间（预留：限时活动/成就系统）
+    #[allow(dead_code)]
     pub obtained_at: Option<DateTime<Utc>>,
 }
 

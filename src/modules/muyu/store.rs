@@ -1,8 +1,8 @@
 //! 赛博木鱼存储层
 
 use anyhow::Result;
-use chrono::{DateTime, Utc};
-use rusqlite::{Connection, params};
+use chrono::Utc;
+use rusqlite::{params, Connection};
 use std::sync::{Arc, Mutex};
 
 use super::models::*;
@@ -36,12 +36,16 @@ impl MuyuStore {
                 merit_total: row.get(2)?,
                 merit_today: row.get(3)?,
                 hits_today: row.get(4)?,
-                last_hit: row.get::<_, Option<String>>(5)?.and_then(|s| s.parse().ok()),
+                last_hit: row
+                    .get::<_, Option<String>>(5)?
+                    .and_then(|s| s.parse().ok()),
                 combo: row.get(6)?,
                 max_combo: row.get(7)?,
                 critical_count: row.get(8)?,
                 consecutive_days: row.get(9)?,
-                last_hit_date: row.get::<_, Option<String>>(10)?.and_then(|s| s.parse().ok()),
+                last_hit_date: row
+                    .get::<_, Option<String>>(10)?
+                    .and_then(|s| s.parse().ok()),
             })
         })?;
 
@@ -69,10 +73,11 @@ impl MuyuStore {
 
         // 检查是否是新的一天，需要重置每日计数
         let is_new_day = {
-            let mut stmt = conn.prepare(
-                "SELECT last_hit_date FROM merit WHERE user_id = ?1 AND room_id = ?2"
-            )?;
-            let last_date: Option<String> = stmt.query_row(params![user_id, room_id], |row| row.get(0)).ok();
+            let mut stmt = conn
+                .prepare("SELECT last_hit_date FROM merit WHERE user_id = ?1 AND room_id = ?2")?;
+            let last_date: Option<String> = stmt
+                .query_row(params![user_id, room_id], |row| row.get(0))
+                .ok();
             last_date.as_deref() != Some(&today_str)
         };
 
@@ -110,7 +115,8 @@ impl MuyuStore {
 
         // 返回更新后的记录
         drop(conn);
-        self.get_merit(user_id, room_id)?.ok_or_else(|| anyhow::anyhow!("Failed to get merit after update"))
+        self.get_merit(user_id, room_id)?
+            .ok_or_else(|| anyhow::anyhow!("Failed to get merit after update"))
     }
 
     /// 重置连击（超过时间窗口时）
@@ -151,7 +157,10 @@ impl MuyuStore {
                     name: row.get(3)?,
                     description: row.get(4)?,
                     icon: row.get(5)?,
-                    condition_kind: row.get::<_, String>(6)?.parse().unwrap_or(ConditionKind::TotalMerit),
+                    condition_kind: row
+                        .get::<_, String>(6)?
+                        .parse()
+                        .unwrap_or(ConditionKind::TotalMerit),
                     condition_value: row.get(7)?,
                     rarity: row.get::<_, String>(8)?.parse().unwrap_or(Rarity::Common),
                 })
@@ -189,7 +198,10 @@ impl MuyuStore {
                 name: row.get(1)?,
                 description: row.get(2)?,
                 icon: row.get(3)?,
-                condition_kind: row.get::<_, String>(4)?.parse().unwrap_or(ConditionKind::TotalMerit),
+                condition_kind: row
+                    .get::<_, String>(4)?
+                    .parse()
+                    .unwrap_or(ConditionKind::TotalMerit),
                 condition_value: row.get(5)?,
                 rarity: row.get::<_, String>(6)?.parse().unwrap_or(Rarity::Common),
             })
@@ -224,12 +236,17 @@ impl MuyuStore {
                     name: row.get(1)?,
                     description: row.get(2)?,
                     icon: row.get(3)?,
-                    condition_kind: row.get::<_, String>(4)?.parse().unwrap_or(ConditionKind::TotalMerit),
+                    condition_kind: row
+                        .get::<_, String>(4)?
+                        .parse()
+                        .unwrap_or(ConditionKind::TotalMerit),
                     condition_value: row.get(5)?,
                     rarity: row.get::<_, String>(6)?.parse().unwrap_or(Rarity::Common),
                 },
                 equipped: row.get::<_, i32>(7)? != 0,
-                obtained_at: row.get::<_, Option<String>>(8)?.and_then(|s| s.parse().ok()),
+                obtained_at: row
+                    .get::<_, Option<String>>(8)?
+                    .and_then(|s| s.parse().ok()),
             })
         })?;
 
@@ -281,7 +298,9 @@ impl MuyuStore {
                 ConditionKind::DailyHits => record.hits_today >= title.condition_value as i32,
                 ConditionKind::Combo => record.max_combo >= title.condition_value as i32,
                 ConditionKind::CriticalHits => record.critical_count >= title.condition_value,
-                ConditionKind::ConsecutiveDays => record.consecutive_days >= title.condition_value as i32,
+                ConditionKind::ConsecutiveDays => {
+                    record.consecutive_days >= title.condition_value as i32
+                }
             };
 
             if should_unlock {
@@ -297,7 +316,14 @@ impl MuyuStore {
     // ==================== 掉落操作 ====================
 
     /// 添加掉落物品
-    pub fn add_drop(&self, user_id: &str, room_id: &str, name: &str, icon: &str, rarity: &Rarity) -> Result<DropItem> {
+    pub fn add_drop(
+        &self,
+        user_id: &str,
+        room_id: &str,
+        name: &str,
+        icon: &str,
+        rarity: &Rarity,
+    ) -> Result<DropItem> {
         let conn = self.conn.lock().unwrap();
         let now = Utc::now();
 
@@ -326,7 +352,7 @@ impl MuyuStore {
             "SELECT id, user_id, room_id, item_name, item_icon, rarity, obtained_at
              FROM drops WHERE user_id = ?1 AND room_id = ?2
              ORDER BY obtained_at DESC
-             LIMIT 100"
+             LIMIT 100",
         )?;
 
         let rows = stmt.query_map(params![user_id, room_id], |row| {
@@ -350,16 +376,5 @@ impl MuyuStore {
         }
 
         Ok(drops)
-    }
-
-    /// 统计用户掉落物品数量
-    pub fn count_drops(&self, user_id: &str, room_id: &str) -> Result<i64> {
-        let conn = self.conn.lock().unwrap();
-        let count: i64 = conn.query_row(
-            "SELECT COUNT(*) FROM drops WHERE user_id = ?1 AND room_id = ?2",
-            params![user_id, room_id],
-            |row| row.get(0),
-        )?;
-        Ok(count)
     }
 }

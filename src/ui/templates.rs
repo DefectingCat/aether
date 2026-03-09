@@ -110,10 +110,6 @@ pub fn warning(msg: &str) -> String {
     GlassTemplate::status(Status::Warning, msg)
 }
 
-pub fn info(msg: &str) -> String {
-    format!("<blockquote>{}</blockquote>", bold(&fc(color::ACCENT, msg)))
-}
-
 pub fn leaderboard(title: &str, headers: &[&str], rows: &[Vec<&str>]) -> String {
     let header_row: String = headers
         .iter()

@@ -11,19 +11,22 @@ use crate::mcp::{McpServerManager, ServerStatus};
 use crate::ui::{error, success, warning};
 
 /// MCP 管理命令处理器
-pub struct McpHandler {
+pub struct McpHandler<T: crate::traits::AiServiceTrait> {
     mcp_manager: Option<Arc<RwLock<McpServerManager>>>,
+    ai_service: Option<T>,
 }
 
-impl McpHandler {
-    /// 创建新的 MCP 命令处理器
-    pub fn new(mcp_manager: Option<Arc<RwLock<McpServerManager>>>) -> Self {
-        Self { mcp_manager }
+impl<T: crate::traits::AiServiceTrait> McpHandler<T> {
+    pub fn new(
+        mcp_manager: Option<Arc<RwLock<McpServerManager>>>,
+        ai_service: Option<T>,
+    ) -> Self {
+        Self { mcp_manager, ai_service }
     }
 }
 
 #[async_trait]
-impl CommandHandler for McpHandler {
+impl<T: crate::traits::AiServiceTrait + 'static> CommandHandler for McpHandler<T> {
     fn name(&self) -> &str {
         "mcp"
     }
@@ -56,16 +59,33 @@ impl CommandHandler for McpHandler {
     }
 }
 
-impl McpHandler {
+impl<T: crate::traits::AiServiceTrait> McpHandler<T> {
     /// 处理 !mcp list 命令
     async fn handle_list(&self, ctx: &CommandContext<'_>) -> anyhow::Result<()> {
-        if self.mcp_manager.is_none() {
-            let html = error("MCP功能未启用");
+        let ai_service = match &self.ai_service {
+            Some(svc) => svc,
+            None => {
+                let html = error("MCP功能未启用");
+                return send_html(&ctx.room, &html).await;
+            }
+        };
+        
+        let tools = ai_service.list_mcp_tools().await;
+        
+        if tools.is_empty() {
+            let html = warning("暂无可用工具");
             return send_html(&ctx.room, &html).await;
         }
         
-        let html = success("MCP工具列表功能已启用");
-        send_html(&ctx.room, &html).await
+        let tool_count = tools.len();
+        let mut message = "🔧 **可用工具列表**：\n\n".to_string();
+        for tool in tools {
+            let desc = tool.description.lines().next().unwrap_or("无描述");
+            message.push_str(&format!("• **{}**: {}\n", tool.name, desc));
+        }
+        
+        message.push_str(&format!("\n📊 共 {} 个工具可用", tool_count));
+        send_html(&ctx.room, &message).await
     }
     
     /// 处理 !mcp servers 命令

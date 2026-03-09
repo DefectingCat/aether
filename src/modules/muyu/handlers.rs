@@ -9,7 +9,7 @@ use crate::command::{CommandContext, CommandHandler, Permission};
 use crate::ui::{error, info_card, leaderboard, success};
 
 use super::logic::MuyuLogic;
-use super::models::{DropItem, HitResult, Rarity, Title};
+use super::models::{HitResult, Rarity};
 use super::store::MuyuStore;
 
 /// 敲木鱼命令处理器
@@ -249,7 +249,7 @@ impl TitleHandler {
                 let equipped = if t.equipped { " ✓" } else { "" };
                 let rarity = t.title.rarity.display_name();
                 (
-                    Box::leak(format!("{} {} [{}]", icon, t.title.name, rarity).into_boxed_str()) as &str,
+                    Box::leak(format!("{} {} [{}]{}", icon, t.title.name, rarity, equipped).into_boxed_str()) as &str,
                     if t.equipped { "已装备" } else { "" },
                 )
             })

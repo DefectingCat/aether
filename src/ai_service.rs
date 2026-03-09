@@ -835,6 +835,10 @@ impl AiServiceTrait for AiService {
     fn mcp_server_manager(&self) -> Option<Arc<RwLock<McpServerManager>>> {
         self.mcp_server_manager()
     }
+    
+    async fn list_mcp_tools(&self) -> Vec<crate::mcp::ToolDefinition> {
+        self.list_mcp_tools().await
+    }
 }
 
 #[cfg(test)]

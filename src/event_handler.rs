@@ -182,6 +182,7 @@ impl<T: AiServiceTrait> EventHandler<T> {
         if config.mcp.enabled {
             command_gateway.register(Arc::new(McpHandler::new(
                 ai_service.mcp_server_manager(),
+                Some(ai_service.clone()),
             )));
             info!("MCP 命令已注册，可用命令: !mcp list, !mcp servers, !mcp reload");
         }

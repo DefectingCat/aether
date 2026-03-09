@@ -1,6 +1,5 @@
 //! 赛博木鱼游戏逻辑
 
-use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use anyhow::Result;
@@ -87,12 +86,20 @@ impl MuyuLogic {
         let merit_gained = ((base_merit as f64) * multiplier) as i64;
 
         // 6. 更新功德记录
-        let updated_record = self.store.update_merit(user_id, room_id, merit_gained, new_combo, is_critical)?;
+        let updated_record =
+            self.store
+                .update_merit(user_id, room_id, merit_gained, new_combo, is_critical)?;
 
         // 7. 掉落判定
         let dropped_item = if self.roll_drop(is_critical) {
             let drop_def = self.drop_table.roll();
-            Some(self.store.add_drop(user_id, room_id, &drop_def.name, &drop_def.icon, &drop_def.rarity)?)
+            Some(self.store.add_drop(
+                user_id,
+                room_id,
+                &drop_def.name,
+                &drop_def.icon,
+                &drop_def.rarity,
+            )?)
         } else {
             None
         };
@@ -154,7 +161,11 @@ impl MuyuLogic {
     /// 掉落判定
     fn roll_drop(&self, is_critical: bool) -> bool {
         let mut rng = rand::rng();
-        let rate = if is_critical { CRITICAL_DROP_RATE } else { DROP_RATE };
+        let rate = if is_critical {
+            CRITICAL_DROP_RATE
+        } else {
+            DROP_RATE
+        };
         rng.random::<f64>() < rate
     }
 }
@@ -170,17 +181,57 @@ impl Default for DropTable {
     fn default() -> Self {
         let items = vec![
             // Common (权重高 = 常见)
-            DropDef { name: "木鱼屑".to_string(), icon: "✨".to_string(), rarity: Rarity::Common, weight: 60.0 },
-            DropDef { name: "香灰".to_string(), icon: "💫".to_string(), rarity: Rarity::Common, weight: 60.0 },
+            DropDef {
+                name: "木鱼屑".to_string(),
+                icon: "✨".to_string(),
+                rarity: Rarity::Common,
+                weight: 60.0,
+            },
+            DropDef {
+                name: "香灰".to_string(),
+                icon: "💫".to_string(),
+                rarity: Rarity::Common,
+                weight: 60.0,
+            },
             // Rare
-            DropDef { name: "佛珠".to_string(), icon: "📿".to_string(), rarity: Rarity::Rare, weight: 25.0 },
-            DropDef { name: "莲花".to_string(), icon: "🪷".to_string(), rarity: Rarity::Rare, weight: 25.0 },
+            DropDef {
+                name: "佛珠".to_string(),
+                icon: "📿".to_string(),
+                rarity: Rarity::Rare,
+                weight: 25.0,
+            },
+            DropDef {
+                name: "莲花".to_string(),
+                icon: "🪷".to_string(),
+                rarity: Rarity::Rare,
+                weight: 25.0,
+            },
             // Epic
-            DropDef { name: "金钟".to_string(), icon: "🔔".to_string(), rarity: Rarity::Epic, weight: 12.0 },
-            DropDef { name: "菩提叶".to_string(), icon: "🍃".to_string(), rarity: Rarity::Epic, weight: 12.0 },
+            DropDef {
+                name: "金钟".to_string(),
+                icon: "🔔".to_string(),
+                rarity: Rarity::Epic,
+                weight: 12.0,
+            },
+            DropDef {
+                name: "菩提叶".to_string(),
+                icon: "🍃".to_string(),
+                rarity: Rarity::Epic,
+                weight: 12.0,
+            },
             // Legendary
-            DropDef { name: "舍利子".to_string(), icon: "💎".to_string(), rarity: Rarity::Legendary, weight: 3.0 },
-            DropDef { name: "佛光".to_string(), icon: "🌈".to_string(), rarity: Rarity::Legendary, weight: 3.0 },
+            DropDef {
+                name: "舍利子".to_string(),
+                icon: "💎".to_string(),
+                rarity: Rarity::Legendary,
+                weight: 3.0,
+            },
+            DropDef {
+                name: "佛光".to_string(),
+                icon: "🌈".to_string(),
+                rarity: Rarity::Legendary,
+                weight: 3.0,
+            },
         ];
 
         let total_weight: f64 = items.iter().map(|i| i.weight).sum();
@@ -192,7 +243,10 @@ impl Default for DropTable {
             cumulative_weights.push(cumulative);
         }
 
-        Self { items, cumulative_weights }
+        Self {
+            items,
+            cumulative_weights,
+        }
     }
 }
 
