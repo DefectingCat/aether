@@ -34,6 +34,7 @@ use crate::command::CommandGateway;
 use crate::config::Config;
 use crate::media::download_image_as_base64;
 use crate::modules::admin::{BotInfoHandler, BotLeaveHandler, BotPingHandler};
+use crate::modules::mcp::McpHandler;
 use crate::modules::muyu::{
     BagHandler, MeritHandler, MuyuHandler, MuyuStore, RankHandler, TitleHandler,
 };
@@ -133,6 +134,7 @@ pub struct EventHandler<T: AiServiceTrait> {
     streaming_min_chars: usize,
     vision_enabled: bool,
     vision_max_image_size: u32,
+    tools_enabled: bool,
 }
 
 impl<T: AiServiceTrait> EventHandler<T> {
@@ -178,8 +180,10 @@ impl<T: AiServiceTrait> EventHandler<T> {
         
         // 注册MCP管理命令
         if config.mcp.enabled {
-            // TODO: 需要在AiService中添加获取mcp_server_manager的方法
-            // command_gateway.register(Arc::new(McpHandler::new(ai_service.mcp_server_manager())));
+            command_gateway.register(Arc::new(McpHandler::new(
+                ai_service.mcp_server_manager(),
+            )));
+            info!("MCP 命令已注册，可用命令: !mcp list, !mcp servers, !mcp reload");
         }
 
         if let Some(ref store) = muyu_store {
@@ -190,7 +194,7 @@ impl<T: AiServiceTrait> EventHandler<T> {
             command_gateway.register(Arc::new(BagHandler::new(store.clone())));
         }
 
-        Self {
+Self {
             ai_service,
             client,
             bot_user_id,
@@ -202,6 +206,7 @@ impl<T: AiServiceTrait> EventHandler<T> {
             streaming_min_chars: config.streaming.min_chars,
             vision_enabled: config.vision.enabled,
             vision_max_image_size: config.vision.max_image_size,
+            tools_enabled: config.mcp.enabled && config.mcp.builtin_tools.enabled,
         }
     }
 
@@ -331,7 +336,38 @@ impl<T: AiServiceTrait> EventHandler<T> {
                 let clean_text = self.extract_message(&text_msg.body);
                 debug!("处理消息 [{}]: {}", session_id, clean_text);
 
-                if self.streaming_enabled {
+                if self.tools_enabled {
+                    info!("使用工具调用模式");
+                    match self.ai_service
+                        .chat_with_tools(&session_id, &clean_text, system_prompt.as_deref())
+                        .await
+                    {
+                        Ok(response) => {
+                            room.send(RoomMessageEventContent::text_plain(response))
+                                .await?;
+                        }
+                        Err(e) => {
+                            warn!("工具调用失败: {}，降级到普通模式", e);
+                            if self.streaming_enabled {
+                                self.handle_streaming_response(
+                                    &room,
+                                    &session_id,
+                                    &clean_text,
+                                    system_prompt.as_deref(),
+                                )
+                                .await?;
+                            } else {
+                                self.handle_normal_response(
+                                    &room,
+                                    &session_id,
+                                    &clean_text,
+                                    system_prompt.as_deref(),
+                                )
+                                .await?;
+                            }
+                        }
+                    }
+                } else if self.streaming_enabled {
                     self.handle_streaming_response(
                         &room,
                         &session_id,

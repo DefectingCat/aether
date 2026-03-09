@@ -104,10 +104,8 @@ struct AiServiceInner {
     /// 会话管理器（使用 RwLock 支持并发读写）
     conversation: Arc<RwLock<ConversationManager>>,
     /// MCP 工具注册表（可选）
-    #[allow(dead_code)]
     mcp_registry: Option<Arc<RwLock<crate::mcp::ToolRegistry>>>,
     /// MCP 服务器管理器（可选）
-    #[allow(dead_code)]
     mcp_server_manager: Option<Arc<RwLock<McpServerManager>>>,
 }
 
@@ -431,13 +429,48 @@ impl AiService {
         conv.reset(session_id);
     }
 
+    /// 获取 MCP 服务器管理器
+    ///
+    /// # Returns
+    ///
+    /// 返回 MCP 服务器管理器的 Arc 引用（如果启用）
+    pub fn mcp_server_manager(&self) -> Option<Arc<RwLock<McpServerManager>>> {
+        self.inner.mcp_server_manager.clone()
+    }
+
     /// 获取 MCP 工具注册表（如果启用）
     #[allow(dead_code)]
     pub fn inner_mcp_registry(&self) -> Option<Arc<RwLock<crate::mcp::ToolRegistry>>> {
         self.inner.mcp_registry.clone()
     }
 
-    /// 执行流式聊天。
+    /// 列出所有可用的 MCP 工具
+    ///
+    /// # Returns
+    ///
+    /// 返回工具定义列表，如果 MCP 未启用则返回空列表
+    pub async fn list_mcp_tools(&self) -> Vec<crate::mcp::ToolDefinition> {
+        if let Some(ref registry) = self.inner.mcp_registry {
+            let registry = registry.read().await;
+            registry.to_openai_tools()
+                .into_iter()
+                .filter_map(|tool| match tool {
+                    async_openai::types::chat::ChatCompletionTools::Function(f) => {
+                        Some(crate::mcp::ToolDefinition {
+                            name: f.function.name,
+                            description: f.function.description.unwrap_or_default(),
+                            parameters: f.function.parameters.unwrap_or(serde_json::Value::Null),
+                        })
+                    }
+                    _ => None,
+                })
+                .collect()
+        } else {
+            Vec::new()
+        }
+    }
+
+    /// 重置指定会话的历史记录。
     #[allow(dead_code)]
     pub async fn chat_stream(&self, session_id: &str, prompt: &str) -> Result<ChatStreamResponse> {
         // 添加用户消息到历史
@@ -788,6 +821,19 @@ impl AiServiceTrait for AiService {
     )> {
         self.chat_stream_with_system(session_id, prompt, system_prompt)
             .await
+    }
+
+    async fn chat_with_tools(
+        &self,
+        session_id: &str,
+        prompt: &str,
+        system_prompt: Option<&str>,
+    ) -> Result<String> {
+        self.chat_with_tools(session_id, prompt, system_prompt).await
+    }
+
+    fn mcp_server_manager(&self) -> Option<Arc<RwLock<McpServerManager>>> {
+        self.mcp_server_manager()
     }
 }
 

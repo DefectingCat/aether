@@ -30,7 +30,9 @@
 use anyhow::Result;
 use futures_util::Stream;
 use std::{future::Future, pin::Pin, sync::Arc};
-use tokio::sync::Mutex;
+use tokio::sync::{Mutex, RwLock};
+
+use crate::mcp::McpServerManager;
 
 /// 流式响应的状态追踪器。
 ///
@@ -298,6 +300,33 @@ pub trait AiServiceTrait: Clone + Send + Sync + 'static {
         text: &str,
         image_data_url: &str,
     ) -> impl Future<Output = Result<ChatStreamResponse>> + Send;
+
+    /// 执行带工具调用的聊天。
+    ///
+    /// AI 可以自动判断是否需要调用工具，并执行工具后返回最终响应。
+    ///
+    /// # Arguments
+    ///
+    /// * `session_id` - 会话标识符
+    /// * `prompt` - 用户输入的消息内容
+    /// * `system_prompt` - 自定义系统提示词
+    ///
+    /// # Returns
+    ///
+    /// 成功时返回 AI 的完整回复文本（已处理工具调用）。
+    fn chat_with_tools(
+        &self,
+        session_id: &str,
+        prompt: &str,
+        system_prompt: Option<&str>,
+    ) -> impl Future<Output = Result<String>> + Send;
+
+    /// 获取 MCP 服务器管理器。
+    ///
+    /// # Returns
+    ///
+    /// 返回 MCP 服务器管理器的 Arc 引用（如果启用）。
+    fn mcp_server_manager(&self) -> Option<Arc<RwLock<McpServerManager>>>;
 }
 
 #[cfg(test)]

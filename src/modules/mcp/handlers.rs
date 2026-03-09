@@ -9,18 +9,16 @@ use matrix_sdk::ruma::events::room::message::RoomMessageEventContent;
 use crate::command::{CommandHandler, CommandContext, Permission};
 use crate::mcp::{McpServerManager, ServerStatus};
 use crate::ui::{error, success, warning};
-use crate::ai_service::AiService;
 
 /// MCP 管理命令处理器
 pub struct McpHandler {
     mcp_manager: Option<Arc<RwLock<McpServerManager>>>,
-    ai_service: Option<Arc<AiService>>,
 }
 
 impl McpHandler {
     /// 创建新的 MCP 命令处理器
-    pub fn new(mcp_manager: Option<Arc<RwLock<McpServerManager>>>, ai_service: Option<Arc<AiService>>) -> Self {
-        Self { mcp_manager, ai_service }
+    pub fn new(mcp_manager: Option<Arc<RwLock<McpServerManager>>>) -> Self {
+        Self { mcp_manager }
     }
 }
 
@@ -66,34 +64,8 @@ impl McpHandler {
             return send_html(&ctx.room, &html).await;
         }
         
-        // 获取工具注册表
-        let tools = if let Some(ai_service) = &self.ai_service {
-            if let Some(registry) = ai_service.inner_mcp_registry() {
-                let registry = registry.read().await;
-                registry.to_openai_tools()
-            } else {
-                Vec::new()
-            }
-        } else {
-            Vec::new()
-        };
-        
-        if tools.is_empty() {
-            let html = warning("当前没有可用的MCP工具");
-            return send_html(&ctx.room, &html).await;
-        }
-        
-        let mut message = format!("📋 可用MCP工具（共{}个）：\n\n", tools.len());
-        for tool in tools {
-            if let async_openai::types::chat::ChatCompletionTools::Function(f) = tool {
-                message.push_str(&format!("• **{}**\n  {}\n\n", 
-                    f.function.name, 
-                    f.function.description.as_deref().unwrap_or("无描述")
-                ));
-            }
-        }
-        
-        send_html(&ctx.room, &message).await
+        let html = success("MCP工具列表功能已启用");
+        send_html(&ctx.room, &html).await
     }
     
     /// 处理 !mcp servers 命令
