@@ -5,7 +5,7 @@ use std::time::{Duration, Instant};
 use anyhow::Result;
 use chrono::Utc;
 use dashmap::DashMap;
-use rand::Rng;
+use rand::RngExt;
 
 use super::models::*;
 use super::store::MuyuStore;
