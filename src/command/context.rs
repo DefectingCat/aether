@@ -68,7 +68,7 @@ impl<'a> CommandContext<'a> {
     ///
     /// # Arguments
     ///
-    /// * `args` - 构建参数，详见 [`CommandContextArgs`]
+    /// * `args` - 构建参数，包含 `client`, `room`, `sender`, `args`, `bot_owners` 字段
     ///
     /// # Example
     ///

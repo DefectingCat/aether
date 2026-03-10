@@ -53,8 +53,7 @@ async fn main() -> Result<()> {
     // expect 用于快速失败，因为日志系统初始化失败是致命错误
     tracing_subscriber::fmt()
         .with_env_filter(
-            tracing_subscriber::EnvFilter::try_new(&config.log.level)
-                .expect("Invalid log level"),
+            tracing_subscriber::EnvFilter::try_new(&config.log.level).expect("Invalid log level"),
         )
         .init();
 

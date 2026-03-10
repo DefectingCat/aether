@@ -1,9 +1,9 @@
 //! 赛博木鱼模块
 
+mod handlers;
+mod logic;
 mod models;
 mod store;
-mod logic;
-mod handlers;
 
-pub use handlers::{MuyuHandler, MeritHandler, RankHandler, TitleHandler, BagHandler};
+pub use handlers::{BagHandler, MeritHandler, MuyuHandler, RankHandler, TitleHandler};
 pub use store::MuyuStore;

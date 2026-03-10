@@ -4,7 +4,7 @@
 //! 响应风格和系统提示词，每个 Matrix 房间可以设置独立的人设。
 
 use anyhow::Result;
-use rusqlite::{params, Connection};
+use rusqlite::{Connection, params};
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, Mutex};
 

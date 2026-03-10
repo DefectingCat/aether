@@ -65,8 +65,8 @@ mod registry;
 pub use context::CommandContext;
 pub use gateway::CommandGateway;
 #[allow(unused_imports)]
-pub use parser::Parser;
-#[allow(unused_imports)]
 pub use parser::ParsedCommand;
+#[allow(unused_imports)]
+pub use parser::Parser;
 pub use permission::Permission;
 pub use registry::CommandHandler;

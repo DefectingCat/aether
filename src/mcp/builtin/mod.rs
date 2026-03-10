@@ -21,13 +21,13 @@ impl Tool for BuiltInTools {
             BuiltInTools::WebFetch(tool) => tool.definition(),
         }
     }
-    
+
     async fn execute(&self, arguments: serde_json::Value) -> anyhow::Result<super::ToolResult> {
         match self {
             BuiltInTools::WebFetch(tool) => tool.execute(arguments).await,
         }
     }
-    
+
     fn source(&self) -> ToolSource {
         ToolSource::BuiltIn
     }

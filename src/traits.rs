@@ -327,7 +327,7 @@ pub trait AiServiceTrait: Clone + Send + Sync + 'static {
     ///
     /// 返回 MCP 服务器管理器的 Arc 引用（如果启用）。
     fn mcp_server_manager(&self) -> Option<Arc<RwLock<McpServerManager>>>;
-    
+
     /// 列出所有可用的 MCP 工具。
     ///
     /// # Returns

@@ -101,7 +101,8 @@ impl AiServiceTrait for MockAiService {
         prompt: &str,
         _system_prompt: Option<&str>,
     ) -> Result<String> {
-        self.chat_with_system(_session_id, prompt, _system_prompt).await
+        self.chat_with_system(_session_id, prompt, _system_prompt)
+            .await
     }
 
     fn mcp_server_manager(&self) -> Option<Arc<RwLock<aether_matrix::mcp::McpServerManager>>> {

@@ -5,7 +5,7 @@
 //! ## 核心类型
 //!
 //! - [`AiService`]: OpenAI API 封装服务，实现 [`AiServiceTrait`]
-//! - [`AiServiceInner`]: 内部实现，使用 `Arc` 包装支持共享
+//! - `AiServiceInner`: 内部实现，使用 `Arc` 包装支持共享（私有类型）
 //!
 //! ## 功能特性
 //!
@@ -54,8 +54,8 @@ use futures_util::{Stream, StreamExt};
 
 use crate::config::Config;
 use crate::conversation::ConversationManager;
-use crate::traits::{AiServiceTrait, ChatStreamResponse, StreamingState};
 use crate::mcp::McpServerManager;
+use crate::traits::{AiServiceTrait, ChatStreamResponse, StreamingState};
 
 /// OpenAI API 封装服务。
 ///
@@ -119,7 +119,7 @@ impl AiService {
         let openai_config = OpenAIConfig::new()
             .with_api_key(&config.openai.api_key)
             .with_api_base(&config.openai.base_url);
-        
+
         let mcp_registry = if config.mcp.enabled {
             Some(Arc::new(RwLock::new(crate::mcp::ToolRegistry::new(
                 &config.mcp.builtin_tools,
@@ -127,7 +127,7 @@ impl AiService {
         } else {
             None
         };
-        
+
         let mcp_server_manager = if config.mcp.enabled && !config.mcp.external_servers.is_empty() {
             if let Some(ref registry) = mcp_registry {
                 match McpServerManager::new(&config.mcp, registry.clone()).await {
@@ -234,7 +234,9 @@ impl AiService {
 
         // 如果没有工具，使用普通聊天
         if tools.is_none() {
-            return self.chat_with_system(session_id, prompt, system_prompt).await;
+            return self
+                .chat_with_system(session_id, prompt, system_prompt)
+                .await;
         }
 
         let tools = tools.unwrap();
@@ -253,9 +255,11 @@ impl AiService {
             model: self.inner.model.clone(),
             messages,
             tools: Some(tools),
-            tool_choice: Some(async_openai::types::chat::ChatCompletionToolChoiceOption::Mode(
-                async_openai::types::chat::ToolChoiceOptions::Auto,
-            )),
+            tool_choice: Some(
+                async_openai::types::chat::ChatCompletionToolChoiceOption::Mode(
+                    async_openai::types::chat::ToolChoiceOptions::Auto,
+                ),
+            ),
             ..Default::default()
         };
 
@@ -273,11 +277,15 @@ impl AiService {
                 // 需要先记录 assistant 消息（包含 tool_calls）
                 for tool_call_enum in tool_calls {
                     // 只处理 Function 类型的工具调用
-                    if let async_openai::types::chat::ChatCompletionMessageToolCalls::Function(tool_call) = tool_call_enum {
+                    if let async_openai::types::chat::ChatCompletionMessageToolCalls::Function(
+                        tool_call,
+                    ) = tool_call_enum
+                    {
                         // 解析参数
-                        let args: serde_json::Value = serde_json::from_str(&tool_call.function.arguments)
-                            .unwrap_or(serde_json::Value::Null);
-                        
+                        let args: serde_json::Value =
+                            serde_json::from_str(&tool_call.function.arguments)
+                                .unwrap_or(serde_json::Value::Null);
+
                         conv.add_tool_call_message(
                             session_id,
                             tool_call.id.clone(),
@@ -291,7 +299,10 @@ impl AiService {
             // 执行每个工具调用
             for tool_call_enum in tool_calls {
                 // 只处理 Function 类型的工具调用
-                if let async_openai::types::chat::ChatCompletionMessageToolCalls::Function(tool_call) = tool_call_enum {
+                if let async_openai::types::chat::ChatCompletionMessageToolCalls::Function(
+                    tool_call,
+                ) = tool_call_enum
+                {
                     tracing::info!(
                         "执行工具: {} (id: {})",
                         tool_call.function.name,
@@ -299,8 +310,9 @@ impl AiService {
                     );
 
                     // 解析参数
-                    let args: serde_json::Value = serde_json::from_str(&tool_call.function.arguments)
-                        .unwrap_or(serde_json::Value::Null);
+                    let args: serde_json::Value =
+                        serde_json::from_str(&tool_call.function.arguments)
+                            .unwrap_or(serde_json::Value::Null);
 
                     // 执行工具
                     let result = self.execute_tool(&tool_call.function.name, args).await?;
@@ -346,7 +358,10 @@ impl AiService {
         arguments: serde_json::Value,
     ) -> Result<serde_json::Value> {
         // 获取 MCP 注册表
-        let mcp_registry = self.inner.mcp_registry.as_ref()
+        let mcp_registry = self
+            .inner
+            .mcp_registry
+            .as_ref()
             .ok_or_else(|| anyhow::anyhow!("MCP not enabled"))?;
 
         // 执行工具
@@ -452,7 +467,8 @@ impl AiService {
     pub async fn list_mcp_tools(&self) -> Vec<crate::mcp::ToolDefinition> {
         if let Some(ref registry) = self.inner.mcp_registry {
             let registry = registry.read().await;
-            registry.to_openai_tools()
+            registry
+                .to_openai_tools()
                 .into_iter()
                 .filter_map(|tool| match tool {
                     async_openai::types::chat::ChatCompletionTools::Function(f) => {
@@ -829,13 +845,14 @@ impl AiServiceTrait for AiService {
         prompt: &str,
         system_prompt: Option<&str>,
     ) -> Result<String> {
-        self.chat_with_tools(session_id, prompt, system_prompt).await
+        self.chat_with_tools(session_id, prompt, system_prompt)
+            .await
     }
 
     fn mcp_server_manager(&self) -> Option<Arc<RwLock<McpServerManager>>> {
         self.mcp_server_manager()
     }
-    
+
     async fn list_mcp_tools(&self) -> Vec<crate::mcp::ToolDefinition> {
         self.list_mcp_tools().await
     }

@@ -1,17 +1,51 @@
 //! Matrix 事件处理模块。
 //!
-//! 处理两类 Matrix 事件：
+//! 本模块负责处理 Matrix 协议中的两类核心事件：
+//!
+//! ## 功能特性
+//!
 //! - **邀请事件**: 自动接受房间邀请（[`handle_invite`]）
 //! - **消息事件**: 处理用户消息并调用 AI 服务（[`EventHandler`]）
 //!
-//! # 消息处理流程
+//! ## 消息处理流程
 //!
-//! 1. 过滤自己发送的消息
+//! 1. 过滤自己发送的消息，避免消息循环
 //! 2. 识别消息类型（命令/提及/普通消息）
 //! 3. 根据房间类型决定响应策略：
 //!    - 私聊：总是响应
 //!    - 群聊：仅在提及或命令时响应
 //! 4. 调用 AI 服务（普通/流式/Vision）
+//!
+//! ## 模块结构
+//!
+//! - [`EventHandler`]: 核心事件处理器，支持泛型 AI 服务
+//! - [`handle_invite`][]: 独立函数，处理房间邀请事件
+//!
+//! ## 响应策略
+//!
+//! | 房间类型 | 响应条件 |
+//! |---------|---------|
+//! | 私聊 | 总是响应 |
+//! | 群聊 | 命令前缀 / @提及 / Intentional Mentions |
+//!
+//! # Example
+//!
+//! ```no_run
+//! use aether_matrix::event_handler::{EventHandler, handle_invite};
+//! use matrix_sdk::{Client, Room};
+//! use matrix_sdk::ruma::events::room::member::StrippedRoomMemberEvent;
+//!
+//! # async fn example(client: Client, bot_user_id: matrix_sdk::ruma::OwnedUserId) {
+//! // 注册邀请事件处理器
+//! client.add_event_handler(|ev: StrippedRoomMemberEvent, client: Client, room: Room| async move {
+//!     let _ = handle_invite(ev, client, room).await;
+//! });
+//!
+//! // 注册消息事件处理器
+//! // let handler = EventHandler::new(...);
+//! // client.add_event_handler(handler);
+//! # }
+//! ```
 
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -46,30 +80,36 @@ use matrix_sdk::ruma::events::room::message::MessageType;
 /// 处理房间邀请（独立函数，不依赖 EventHandler 实例）。
 ///
 /// 当机器人收到房间邀请时自动加入，支持私聊和群聊场景。
+/// 仅处理邀请机器人自己的消息，忽略其他邀请。
 ///
 /// # Arguments
 ///
-/// * `ev` - Matrix 邀请事件
-/// * `client` - Matrix 客户端实例
+/// * `ev` - Matrix 邀请事件（`StrippedRoomMemberEvent`）
+/// * `client` - Matrix 客户端实例，用于加入房间
 /// * `room` - 邀请的房间实例
 ///
 /// # Returns
 ///
 /// 成功时返回 `Ok(())`，失败时返回错误。
 ///
+/// # Errors
+///
+/// 当加入房间失败时返回错误（通常记录警告日志）。
+///
 /// # Example
 ///
-/// ```
+/// ```no_run
 /// use aether_matrix::event_handler::handle_invite;
+/// use matrix_sdk::{Client, Room};
+/// use matrix_sdk::ruma::events::room::member::StrippedRoomMemberEvent;
 ///
-/// // // 注册为事件处理器
-/// // client.add_event_handler(
-/// //     |ev: StrippedRoomMemberEvent, client: Client, room: Room| async move {
-/// //         if let Err(e) = handle_invite(ev, client, room).await {
-/// //             tracing::error!("处理邀请失败: {}", e);
-/// //         }
-/// //     }
-/// // );
+/// # async fn example(client: Client) {
+/// client.add_event_handler(|ev: StrippedRoomMemberEvent, client: Client, room: Room| async move {
+///     if let Err(e) = handle_invite(ev, client, room).await {
+///         tracing::error!("处理邀请失败：{}", e);
+///     }
+/// });
+/// # }
 /// ```
 pub async fn handle_invite(ev: StrippedRoomMemberEvent, client: Client, room: Room) -> Result<()> {
     if ev.content.membership != MembershipState::Invite {
@@ -93,35 +133,50 @@ pub async fn handle_invite(ev: StrippedRoomMemberEvent, client: Client, room: Ro
     Ok(())
 }
 
-#[derive(Clone)]
 /// Matrix 消息事件处理器。
 ///
 /// 泛型参数 `T` 支持任意实现 [`AiServiceTrait`] 的服务，
 /// 便于测试和替换 AI 实现。
 ///
-/// # 职责
+/// ## 功能特性
 ///
-/// - 消息路由：识别命令、提及、普通消息
-/// - AI 响应：调用 AI 服务并处理响应（普通/流式/Vision）
-/// - 错误处理：优雅处理 AI 服务错误
+/// - **消息路由**: 识别命令、提及、普通消息
+/// - **AI 响应**: 调用 AI 服务并处理响应（普通/流式/Vision）
+/// - **错误处理**: 优雅处理 AI 服务错误
+/// - **命令管理**: 内置命令网关，支持权限控制
+/// - **流式输出**: 打字机效果，节流控制更新频率
+/// - **图片理解**: Vision API 支持图片分析
 ///
 /// # Example
 ///
-/// ```
+/// ```no_run
 /// use aether_matrix::event_handler::EventHandler;
 /// use aether_matrix::ai_service::AiService;
 ///
-/// // let handler = EventHandler::new(
-/// // //     ai_service,
-/// // //     bot_user_id,
-/// // //     client,
-/// // //     &config,
-/// // //     persona_store,
-/// // // );
-/// //
-/// // // 注册为事件处理器
-/// // client.add_event_handler(handler);
+/// # async fn example(
+/// #     ai_service: AiService,
+/// #     bot_user_id: matrix_sdk::ruma::OwnedUserId,
+/// #     client: matrix_sdk::Client,
+/// #     config: aether_matrix::config::Config,
+/// # ) {
+/// let handler = EventHandler::new(
+///     ai_service,
+///     bot_user_id,
+///     client,
+///     &config,
+///     None, // persona_store
+///     None, // muyu_store
+/// );
+///
+/// // 注册为事件处理器
+/// client.add_event_handler(handler);
+/// # }
 /// ```
+///
+/// # Cloning
+///
+/// 使用 `#[derive(Clone)]`，支持高效克隆。所有字段均为 `Clone` 或 `Arc` 包装。
+#[derive(Clone)]
 pub struct EventHandler<T: AiServiceTrait> {
     ai_service: T,
     client: Client,
@@ -141,24 +196,61 @@ impl<T: AiServiceTrait> EventHandler<T> {
     /// 创建新的事件处理器实例。
     ///
     /// 初始化时会注册以下命令处理器：
-    /// - [`BotInfoHandler`]\: 显示机器人信息
-    /// - [`BotLeaveHandler`]\: 机器人离开房间
-    /// - [`BotPingHandler`]\: Ping 测试
-    /// - [`PersonaHandler`]\: 人设管理（如果数据库可用）
-    /// - [`MuyuHandler`]\: 赛博木鱼（如果数据库可用）
+    ///
+    /// ## 内置命令
+    ///
+    /// - [`BotInfoHandler`] — 显示机器人信息
+    /// - [`BotLeaveHandler`] — 机器人离开房间
+    /// - [`BotPingHandler`] — Ping 测试
+    ///
+    /// ## 可选命令（依赖配置）
+    ///
+    /// - [`PersonaHandler`] — 人设管理（如果 `persona_store` 可用）
+    /// - [`MuyuHandler`] — 赛博木鱼（如果 `muyu_store` 可用）
+    /// - [`McpHandler`] — MCP 管理（如果 `config.mcp.enabled` 为 true）
     ///
     /// # Arguments
     ///
-    /// * `ai_service` - AI 服务实例
+    /// * `ai_service` - AI 服务实例，实现 [`AiServiceTrait`]
     /// * `bot_user_id` - 机器人的 Matrix 用户 ID
     /// * `client` - Matrix 客户端实例
-    /// * `config` - 机器人配置
-    /// * `persona_store` - 人设存储（可选）
-    /// * `muyu_store` - 木鱼存储（可选）
+    /// * `config` - 机器人配置，用于初始化命令网关和功能开关
+    /// * `persona_store` - 人设存储（可选），用于房间人设管理
+    /// * `muyu_store` - 木鱼存储（可选），用于赛博木鱼功能
     ///
     /// # Returns
     ///
     /// 返回初始化完成的事件处理器实例。
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use aether_matrix::event_handler::EventHandler;
+    /// # use aether_matrix::ai_service::AiService;
+    /// # use aether_matrix::config::Config;
+    /// # use matrix_sdk::Client;
+    /// # use matrix_sdk::ruma::OwnedUserId;
+    /// # use aether_matrix::store::PersonaStore;
+    /// # use aether_matrix::modules::muyu::MuyuStore;
+    ///
+    /// # async fn example(
+    /// #     ai_service: AiService,
+    /// #     bot_user_id: OwnedUserId,
+    /// #     client: Client,
+    /// #     config: Config,
+    /// #     persona_store: Option<PersonaStore>,
+    /// #     muyu_store: Option<MuyuStore>,
+    /// # ) {
+    /// let handler = EventHandler::new(
+    ///     ai_service,
+    ///     bot_user_id,
+    ///     client,
+    ///     &config,
+    ///     persona_store,
+    ///     muyu_store,
+    /// );
+    /// # }
+    /// ```
     pub fn new(
         ai_service: T,
         bot_user_id: OwnedUserId,
@@ -177,7 +269,7 @@ impl<T: AiServiceTrait> EventHandler<T> {
         if let Some(ref store) = persona_store {
             command_gateway.register(Arc::new(PersonaHandler::new(store.clone())));
         }
-        
+
         // 注册MCP管理命令
         if config.mcp.enabled {
             command_gateway.register(Arc::new(McpHandler::new(
@@ -195,7 +287,7 @@ impl<T: AiServiceTrait> EventHandler<T> {
             command_gateway.register(Arc::new(BagHandler::new(store.clone())));
         }
 
-Self {
+        Self {
             ai_service,
             client,
             bot_user_id,
@@ -214,22 +306,30 @@ Self {
     /// 处理 Matrix 房间消息事件。
     ///
     /// 根据消息类型和房间类型决定响应策略：
-    /// - **命令消息**: 分发给命令处理器
-    /// - **提及消息**: 调用 AI 服务响应
-    /// - **图片消息**: 调用 Vision API 分析
     ///
-    /// # 响应策略
+    /// ## 消息类型识别
+    ///
+    /// - **命令消息**: 以命令前缀（如 `!`）开头，分发给命令处理器
+    /// - **提及消息**: 包含 `@user_id` 或 mentions 字段，调用 AI 服务响应
+    /// - **图片消息**: Vision API 分析（需启用 `vision_enabled`）
+    ///
+    /// ## 响应策略
     ///
     /// | 房间类型 | 响应条件 |
     /// |---------|---------|
     /// | 私聊 | 总是响应 |
     /// | 群聊 | 命令前缀 / @提及 / Intentional Mentions |
     ///
+    /// ## 会话隔离
+    ///
+    /// - 私聊：按用户 ID 隔离，每个用户有独立的对话历史
+    /// - 群聊：按房间 ID 隔离，房间内所有用户共享历史
+    ///
     /// # Arguments
     ///
-    /// * `ev` - Matrix 消息事件
-    /// * `room` - 房间实例
-    /// * `client` - Matrix 客户端
+    /// * `ev` - Matrix 消息事件（`SyncRoomMessageEvent`）
+    /// * `room` - 房间实例，用于发送响应消息
+    /// * `client` - Matrix 客户端，用于高级操作（如下载图片）
     ///
     /// # Returns
     ///
@@ -238,9 +338,10 @@ Self {
     /// # Errors
     ///
     /// 当以下情况发生时返回错误：
-    /// - 命令分发失败
-    /// - AI 服务调用失败
-    /// - Matrix API 调用失败
+    /// - 命令分发失败（权限不足、命令不存在）
+    /// - AI 服务调用失败（网络错误、API 限制）
+    /// - Matrix API 调用失败（房间不可用、权限不足）
+    /// - 图片下载或处理失败
     pub async fn handle_message(
         &self,
         ev: matrix_sdk::ruma::events::room::message::SyncRoomMessageEvent,
@@ -339,7 +440,8 @@ Self {
 
                 if self.tools_enabled {
                     info!("使用工具调用模式");
-                    match self.ai_service
+                    match self
+                        .ai_service
                         .chat_with_tools(&session_id, &clean_text, system_prompt.as_deref())
                         .await
                     {
@@ -470,29 +572,40 @@ Self {
     /// 流式响应处理（打字机效果）。
     ///
     /// 使用混合节流策略控制消息更新频率，平衡用户体验和 API 调用开销：
-    /// - **时间触发**: 超过 `streaming_min_interval` 时更新
-    /// - **字符触发**: 累积超过 `streaming_min_chars` 时更新
     ///
-    /// # 消息更新机制
+    /// ## 节流策略
     ///
-    /// 1. 首次发送新消息
-    /// 2. 后续使用 Matrix 消息编辑 API 更新内容
+    /// - **时间触发**: 超过 `streaming_min_interval` 时更新（避免过于频繁）
+    /// - **字符触发**: 累积超过 `streaming_min_chars` 时更新（快速输出时提前更新）
+    ///
+    /// ## 消息更新机制
+    ///
+    /// 1. 首次发送新消息（记录 `event_id`）
+    /// 2. 后续使用 Matrix 消息编辑 API 更新内容（`make_replacement`）
     /// 3. 流结束时发送最终版本
+    ///
+    /// # Arguments
+    ///
+    /// * `room` - Matrix 房间实例
+    /// * `session_id` - 会话标识符（用户 ID 或房间 ID）
+    /// * `clean_text` - 清理后的用户消息（已移除命令前缀和提及）
+    /// * `system_prompt` - 可选的系统提示词（来自房间人设）
+    ///
+    /// # Returns
+    ///
+    /// 成功时返回 `Ok(())`，失败时返回错误。
+    ///
+    /// # Errors
+    ///
+    /// 当以下情况发生时返回错误：
+    /// - 流式 AI 调用初始化失败
+    /// - Matrix 消息发送或编辑失败
+    /// - 流消费过程中出错
     ///
     /// # Error Handling
     ///
     /// 流中途出错时，会在已发送内容后追加错误信息，
     /// 避免用户看到突然中断的消息。
-    ///
-    /// # Arguments
-    ///
-    /// * `room` - Matrix 房间实例
-    /// * `session_id` - 会话标识符
-    /// * `clean_text` - 清理后的用户消息（已移除命令前缀和提及）
-    ///
-    /// # Returns
-    ///
-    /// 成功时返回 `Ok(())`，失败时返回错误。
     async fn handle_streaming_response(
         &self,
         room: &Room,
@@ -620,9 +733,12 @@ Self {
     /// 清理用户消息，移除命令前缀和提及。
     ///
     /// 处理以下情况：
-    /// - 移除命令前缀（如 `!ai`）
-    /// - 移除文本形式的 @user_id 提及
-    /// - 去除首尾空白
+    ///
+    /// ## 清理规则
+    ///
+    /// 1. 移除命令前缀（如 `!ai` → 空）
+    /// 2. 移除文本形式的 @user_id 提及（如 `@bot:matrix.org` → 空）
+    /// 3. 去除首尾空白
     ///
     /// # Arguments
     ///
@@ -631,6 +747,17 @@ Self {
     /// # Returns
     ///
     /// 返回清理后的消息文本。
+    ///
+    /// # Example
+    ///
+    /// 输入与输出示例：
+    ///
+    /// | 输入 | 输出 |
+    /// |------|------|
+    /// | `! Hello world` | `Hello world` |
+    /// | `@bot:matrix.org Hi` | `Hi` |
+    /// | `! @bot:matrix.org Test` | `Test` |
+    /// | `Just a message` | `Just a message` |
     fn extract_message(&self, text: &str) -> String {
         let mut result = text.to_string();
 
@@ -721,7 +848,9 @@ mod tests {
             Ok("mock response".to_string())
         }
 
-        fn mcp_server_manager(&self) -> Option<std::sync::Arc<tokio::sync::RwLock<crate::mcp::McpServerManager>>> {
+        fn mcp_server_manager(
+            &self,
+        ) -> Option<std::sync::Arc<tokio::sync::RwLock<crate::mcp::McpServerManager>>> {
             None
         }
 

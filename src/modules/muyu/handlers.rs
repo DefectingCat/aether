@@ -477,4 +477,3 @@ fn render_hit_result(result: &HitResult) -> String {
 
     format!("<blockquote>{}</blockquote>", parts.join("<br>"))
 }
-

@@ -1,21 +1,92 @@
 //! # MCP 配置
 //!
 //! 管理 MCP 功能的所有配置项，包括内置工具和外部 MCP 服务器。
+//!
+//! ## 配置结构
+//!
+//! | 类型 | 说明 |
+//! |------|------|
+//! | [`McpConfig`] | 总配置，包含启用状态、内置工具、外部服务器 |
+//! | [`BuiltinToolsConfig`] | 内置工具配置结构体 |
+//! | [`WebFetchConfig`] | Web Fetch 工具配置结构体 |
+//! | [`ExternalServerConfig`] | 外部 MCP 服务器配置结构体 |
+//! | [`TransportType`] | 传输类型枚举（Stdio/HTTP/SSE） |
+//!
+//! ## 配置示例
+//!
+//! ### TOML 配置
+//!
+//! ```toml
+//! [mcp]
+//! enabled = true
+//!
+//! [mcp.builtin_tools]
+//! enabled = true
+//!
+//! [mcp.builtin_tools.web_fetch]
+//! enabled = true
+//! max_length = 10000  # 最大内容长度（字符）
+//! timeout = 10        # HTTP 超时（秒）
+//!
+//! [[mcp.external_servers]]
+//! name = "filesystem"
+//! transport = "stdio"
+//! command = "npx"
+//! args = ["-y", "@modelcontextprotocol/server-filesystem", "/home/user"]
+//! enabled = true
+//! ```
+//!
+//! ### 环境变量
+//!
+//! ```bash
+//! # 总开关
+//! MCP_ENABLED=true
+//!
+//! # 内置工具
+//! MCP_BUILTIN_TOOLS_ENABLED=true
+//! MCP_BUILTIN_WEB_FETCH_ENABLED=true
+//! MCP_BUILTIN_WEB_FETCH_MAX_LENGTH=10000
+//! MCP_BUILTIN_WEB_FETCH_TIMEOUT=10
+//! ```
 
 use serde::{Deserialize, Serialize};
 
-/// MCP 总配置
+/// MCP 总配置结构体。
+///
+/// 包含启用状态、内置工具配置和外部 MCP 服务器配置。
+///
+/// ## 字段说明
+///
+/// - `enabled`: 是否启用 MCP 功能
+/// - `builtin_tools`: 内置工具配置（web_fetch 等）
+/// - `external_servers`: 外部 MCP 服务器配置列表
+///
+/// # Example
+///
+/// ```
+/// use aether_matrix::mcp::McpConfig;
+///
+/// let config = McpConfig::default();
+/// assert!(config.enabled);
+/// assert!(config.builtin_tools.enabled);
+/// ```
 #[derive(Debug, Clone, Deserialize)]
 pub struct McpConfig {
-    /// 是否启用 MCP 功能
+    /// 是否启用 MCP 功能。
+    ///
+    /// 默认值：`true`
     #[serde(default = "default_mcp_enabled")]
     pub enabled: bool,
 
-    /// 内置工具配置
+    /// 内置工具配置。
+    ///
+    /// 控制是否启用内置工具（如 web_fetch）。
     #[serde(default)]
     pub builtin_tools: BuiltinToolsConfig,
 
-    /// 外部 MCP 服务器配置
+    /// 外部 MCP 服务器配置。
+    ///
+    /// 可配置多个外部 MCP 服务器，支持 stdio/HTTP/SSE 传输。
     #[serde(default)]
     pub external_servers: Vec<ExternalServerConfig>,
 }

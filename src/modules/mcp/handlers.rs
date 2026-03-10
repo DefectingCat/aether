@@ -1,12 +1,12 @@
 //! MCP 命令处理器实现
 
 use async_trait::async_trait;
+use matrix_sdk::ruma::events::room::message::RoomMessageEventContent;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use tracing::info;
-use matrix_sdk::ruma::events::room::message::RoomMessageEventContent;
 
-use crate::command::{CommandHandler, CommandContext, Permission};
+use crate::command::{CommandContext, CommandHandler, Permission};
 use crate::mcp::{McpServerManager, ServerStatus};
 use crate::ui::{error, success, warning};
 
@@ -85,11 +85,11 @@ impl<T: crate::traits::AiServiceTrait> McpHandler<T> {
     ///
     /// * `mcp_manager` - MCP 服务器管理器，用于管理外部 MCP 服务器连接
     /// * `ai_service` - AI 服务实例，用于获取可用工具列表
-    pub fn new(
-        mcp_manager: Option<Arc<RwLock<McpServerManager>>>,
-        ai_service: Option<T>,
-    ) -> Self {
-        Self { mcp_manager, ai_service }
+    pub fn new(mcp_manager: Option<Arc<RwLock<McpServerManager>>>, ai_service: Option<T>) -> Self {
+        Self {
+            mcp_manager,
+            ai_service,
+        }
     }
 }
 
@@ -110,7 +110,7 @@ impl<T: crate::traits::AiServiceTrait + 'static> CommandHandler for McpHandler<T
     fn name(&self) -> &str {
         "mcp"
     }
-    
+
     /// 命令描述。
     ///
     /// 用于帮助信息，简要说明命令功能。
@@ -127,7 +127,7 @@ impl<T: crate::traits::AiServiceTrait + 'static> CommandHandler for McpHandler<T
     fn description(&self) -> &str {
         "MCP 服务器管理命令"
     }
-    
+
     /// 使用说明。
     ///
     /// 用于帮助信息，说明命令的参数和子命令。
@@ -148,7 +148,7 @@ impl<T: crate::traits::AiServiceTrait + 'static> CommandHandler for McpHandler<T
         - servers: 查看MCP服务器连接状态\n\
         - reload: 重载MCP配置（仅Bot所有者）"
     }
-    
+
     /// 所需权限级别。
     ///
     /// 返回 `Anyone`，基础子命令任何房间成员都可执行。
@@ -166,7 +166,7 @@ impl<T: crate::traits::AiServiceTrait + 'static> CommandHandler for McpHandler<T
     fn permission(&self) -> Permission {
         Permission::Anyone
     }
-    
+
     /// 执行命令。
     ///
     /// 根据子命令分发到对应的处理方法：
@@ -184,7 +184,7 @@ impl<T: crate::traits::AiServiceTrait + 'static> CommandHandler for McpHandler<T
     /// 成功时返回 `Ok(())`，失败时返回错误。
     async fn execute(&self, ctx: &CommandContext<'_>) -> anyhow::Result<()> {
         let subcommand = ctx.args.first().copied().unwrap_or_default();
-        
+
         match subcommand {
             "list" => self.handle_list(ctx).await,
             "servers" => self.handle_servers(ctx).await,
@@ -204,36 +204,36 @@ impl<T: crate::traits::AiServiceTrait> McpHandler<T> {
                 return send_html(&ctx.room, &html).await;
             }
         };
-        
+
         let tools = ai_service.list_mcp_tools().await;
-        
+
         if tools.is_empty() {
             let html = warning("暂无可用工具");
             return send_html(&ctx.room, &html).await;
         }
-        
+
         let tool_count = tools.len();
         let mut message = "🔧 **可用工具列表**：\n\n".to_string();
         for tool in tools {
             let desc = tool.description.lines().next().unwrap_or("无描述");
             message.push_str(&format!("• **{}**: {}\n", tool.name, desc));
         }
-        
+
         message.push_str(&format!("\n📊 共 {} 个工具可用", tool_count));
         send_html(&ctx.room, &message).await
     }
-    
+
     /// 处理 !mcp servers 命令
     async fn handle_servers(&self, ctx: &CommandContext<'_>) -> anyhow::Result<()> {
         if let Some(manager) = &self.mcp_manager {
             let manager = manager.read().await;
             let statuses = manager.get_server_statuses().await;
-            
+
             if statuses.is_empty() {
                 let html = warning("没有配置外部MCP服务器");
                 return send_html(&ctx.room, &html).await;
             }
-            
+
             let mut message = "🖥️ MCP服务器状态：\n\n".to_string();
             for (name, status) in statuses {
                 let status_icon = match status {
@@ -242,26 +242,26 @@ impl<T: crate::traits::AiServiceTrait> McpHandler<T> {
                     ServerStatus::Disconnected => "⚪",
                     ServerStatus::Failed(_) => "❌",
                 };
-                
+
                 let status_text = match status {
                     ServerStatus::Connected => "已连接",
                     ServerStatus::Connecting => "连接中",
                     ServerStatus::Disconnected => "未连接",
                     ServerStatus::Failed(e) => &format!("连接失败: {}", e),
                 };
-                
+
                 message.push_str(&format!("{} **{}**: {}\n", status_icon, name, status_text));
             }
-            
+
             send_html(&ctx.room, &message).await?;
         } else {
             let html = error("MCP功能未启用");
             send_html(&ctx.room, &html).await?;
         }
-        
+
         Ok(())
     }
-    
+
     /// 处理 !mcp reload 命令
     async fn handle_reload(&self, ctx: &CommandContext<'_>) -> anyhow::Result<()> {
         // 检查权限：仅Bot所有者可以重载
@@ -272,29 +272,29 @@ impl<T: crate::traits::AiServiceTrait> McpHandler<T> {
             let html = error("权限不足，仅Bot所有者可以执行此操作");
             return send_html(&ctx.room, &html).await;
         }
-        
+
         if let Some(manager) = &self.mcp_manager {
             let manager = manager.write().await;
-            
+
             // TODO: 实现配置重载逻辑，需要从配置文件重新加载
             let html = warning("配置重载功能尚未完全实现");
             send_html(&ctx.room, &html).await?;
-            
+
             // 重新连接所有服务器
             info!("Reloading MCP servers by user request: {}", ctx.sender);
             manager.connect_all_servers().await;
             manager.register_all_external_tools().await;
-            
+
             let html = success("已重新连接所有MCP服务器");
             send_html(&ctx.room, &html).await?;
         } else {
             let html = error("MCP功能未启用");
             send_html(&ctx.room, &html).await?;
         }
-        
+
         Ok(())
     }
-    
+
     /// 处理帮助信息
     async fn handle_help(&self, ctx: &CommandContext<'_>) -> anyhow::Result<()> {
         let help = format!("📖 MCP管理命令帮助：\n\n{}", self.usage());

@@ -43,8 +43,8 @@ use tracing::info;
 use crate::ai_service::AiService;
 use crate::config::Config;
 use crate::event_handler::{EventHandler, handle_invite};
-use crate::store::{Database, PersonaStore};
 use crate::modules::muyu::MuyuStore;
+use crate::store::{Database, PersonaStore};
 
 /// Matrix AI 机器人主结构体。
 ///
