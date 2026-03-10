@@ -246,6 +246,26 @@ impl PersonaHandler {
                 self.store
                     .set_room_persona(&room_id, &persona_id, &set_by)?;
 
+                // 更新 Bot 的显示名称：添加人设后缀
+                let account = ctx.client.account();
+                let current_name = account
+                    .get_display_name()
+                    .await
+                    .ok()
+                    .flatten()
+                    .unwrap_or_else(|| "Aether".to_string());
+
+                // 移除旧的人设后缀（如果存在），然后添加新的
+                let base_name = current_name
+                    .find(" (")
+                    .map(|pos| current_name[..pos].to_string())
+                    .unwrap_or(current_name);
+
+                let new_name = format!("{} ({})", base_name, persona.name);
+                if let Err(e) = account.set_display_name(Some(&new_name)).await {
+                    tracing::warn!("更新显示名称失败: {}", e);
+                }
+
                 let emoji = persona.avatar_emoji.as_deref().unwrap_or("");
                 let html = success(&format!("已设置人设: {} {}", emoji, persona.name));
                 send_html(&ctx.room, &html).await
