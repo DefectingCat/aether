@@ -165,9 +165,32 @@ impl ToolRegistry {
         self.tools.is_empty()
     }
 
-    /// 检查工具是否存在
-    pub fn contains(&self, tool_name: &str) -> bool {
-        self.tools.contains_key(tool_name)
+    /// 移除指定来源的所有工具
+    pub fn remove_by_source(&mut self, source: &ToolSource) {
+        let to_remove: Vec<String> = self
+            .tools
+            .iter()
+            .filter(|(_, tool)| tool.source() == *source)
+            .map(|(name, _)| name.clone())
+            .collect();
+
+        for name in to_remove {
+            self.tools.remove(&name);
+        }
+    }
+
+    /// 移除所有外部 MCP 工具
+    pub fn remove_all_external_tools(&mut self) {
+        let external_sources: Vec<ToolSource> = self
+            .tools
+            .values()
+            .map(|tool| tool.source())
+            .filter(|source| matches!(source, ToolSource::ExternalMcp(_)))
+            .collect();
+
+        for source in external_sources {
+            self.remove_by_source(&source);
+        }
     }
 }
 

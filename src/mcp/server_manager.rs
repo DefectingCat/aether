@@ -59,7 +59,7 @@ impl McpServer {
                 .await
                 .map(|t| t.peer().clone()),
             TransportType::Http | TransportType::Sse => {
-                anyhow::bail!("HTTP/SSE transport not implemented yet")
+                anyhow::bail!("HTTP/SSE transport not available in rmcp 1.0.0")
             }
         };
 
@@ -380,9 +380,11 @@ impl McpServerManager {
         self.connect_all_servers().await;
 
         // 清空注册表中的外部工具，重新注册
-        // TODO: 实现仅移除外部工具的方法，而不是清空整个注册表
-        // 目前简单重新创建注册表会丢失内置工具，后续优化
-        warn!("Tool registry reload not fully implemented yet, will be fixed in next phase");
+        {
+            let mut registry = self.tool_registry.write().await;
+            registry.remove_all_external_tools();
+        }
+        self.register_all_external_tools().await;
 
         Ok(())
     }

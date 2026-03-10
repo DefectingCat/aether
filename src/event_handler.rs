@@ -49,6 +49,7 @@
 
 use std::sync::Arc;
 use std::time::{Duration, Instant};
+use tokio::sync::RwLock;
 
 use anyhow::Result;
 use futures_util::StreamExt;
@@ -190,6 +191,8 @@ pub struct EventHandler<T: AiServiceTrait> {
     vision_enabled: bool,
     vision_max_image_size: u32,
     tools_enabled: bool,
+    #[allow(dead_code)] // Stored for future MCP registry access
+    mcp_registry: Option<Arc<RwLock<crate::mcp::ToolRegistry>>>,
 }
 
 impl<T: AiServiceTrait> EventHandler<T> {
@@ -217,6 +220,7 @@ impl<T: AiServiceTrait> EventHandler<T> {
     /// * `config` - 机器人配置，用于初始化命令网关和功能开关
     /// * `persona_store` - 人设存储（可选），用于房间人设管理
     /// * `muyu_store` - 木鱼存储（可选），用于赛博木鱼功能
+    /// * `mcp_registry` - MCP 工具注册表（可选），用于工具调用功能
     ///
     /// # Returns
     ///
@@ -232,6 +236,8 @@ impl<T: AiServiceTrait> EventHandler<T> {
     /// # use matrix_sdk::ruma::OwnedUserId;
     /// # use aether_matrix::store::PersonaStore;
     /// # use aether_matrix::modules::muyu::MuyuStore;
+    /// # use std::sync::Arc;
+    /// # use tokio::sync::RwLock;
     ///
     /// # async fn example(
     /// #     ai_service: AiService,
@@ -240,6 +246,7 @@ impl<T: AiServiceTrait> EventHandler<T> {
     /// #     config: Config,
     /// #     persona_store: Option<PersonaStore>,
     /// #     muyu_store: Option<MuyuStore>,
+    /// #     mcp_registry: Option<Arc<RwLock<aether_matrix::mcp::ToolRegistry>>>,
     /// # ) {
     /// let handler = EventHandler::new(
     ///     ai_service,
@@ -248,6 +255,7 @@ impl<T: AiServiceTrait> EventHandler<T> {
     ///     &config,
     ///     persona_store,
     ///     muyu_store,
+    ///     mcp_registry,
     /// );
     /// # }
     /// ```
@@ -258,6 +266,7 @@ impl<T: AiServiceTrait> EventHandler<T> {
         config: &Config,
         persona_store: Option<PersonaStore>,
         muyu_store: Option<MuyuStore>,
+        mcp_registry: Option<Arc<RwLock<crate::mcp::ToolRegistry>>>,
     ) -> Self {
         let mut command_gateway =
             CommandGateway::new(config.bot.command_prefix.clone(), config.bot.owners.clone());
@@ -299,7 +308,12 @@ impl<T: AiServiceTrait> EventHandler<T> {
             streaming_min_chars: config.streaming.min_chars,
             vision_enabled: config.vision.enabled,
             vision_max_image_size: config.vision.max_image_size,
-            tools_enabled: config.mcp.enabled && config.mcp.builtin_tools.enabled,
+            tools_enabled: config.mcp.enabled
+                && mcp_registry
+                    .as_ref()
+                    .map(|r: &Arc<RwLock<crate::mcp::ToolRegistry>>| !r.blocking_read().is_empty())
+                    .unwrap_or(false),
+            mcp_registry,
         }
     }
 
@@ -438,7 +452,14 @@ impl<T: AiServiceTrait> EventHandler<T> {
                 let clean_text = self.extract_message(&text_msg.body);
                 debug!("处理消息 [{}]: {}", session_id, clean_text);
 
-                if self.tools_enabled {
+                // Check if any tools are available (builtin or external)
+                let tools_available = if self.tools_enabled {
+                    true
+                } else {
+                    self.ai_service.has_tools().await
+                };
+
+                if tools_available {
                     info!("使用工具调用模式");
                     match self
                         .ai_service
@@ -854,8 +875,18 @@ mod tests {
             None
         }
 
+        fn inner_mcp_registry(
+            &self,
+        ) -> Option<std::sync::Arc<tokio::sync::RwLock<crate::mcp::ToolRegistry>>> {
+            None
+        }
+
         async fn list_mcp_tools(&self) -> Vec<crate::mcp::ToolDefinition> {
             vec![]
+        }
+
+        async fn has_tools(&self) -> bool {
+            false
         }
     }
 
@@ -907,7 +938,15 @@ mod tests {
                 .await
                 .unwrap()
         });
-        EventHandler::new(MockAiService, bot_user_id, client, &config, None, None)
+        EventHandler::new(
+            MockAiService,
+            bot_user_id,
+            client,
+            &config,
+            None,
+            None,
+            None,
+        )
     }
 
     #[test]

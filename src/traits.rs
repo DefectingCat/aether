@@ -328,12 +328,26 @@ pub trait AiServiceTrait: Clone + Send + Sync + 'static {
     /// 返回 MCP 服务器管理器的 Arc 引用（如果启用）。
     fn mcp_server_manager(&self) -> Option<Arc<RwLock<McpServerManager>>>;
 
+    /// 获取 MCP 工具注册表。
+    ///
+    /// # Returns
+    ///
+    /// 返回工具注册表的 Arc 引用（如果启用）。
+    fn inner_mcp_registry(&self) -> Option<Arc<RwLock<crate::mcp::ToolRegistry>>>;
+
     /// 列出所有可用的 MCP 工具。
     ///
     /// # Returns
     ///
     /// 返回工具定义列表，如果 MCP 未启用则返回空列表。
     fn list_mcp_tools(&self) -> impl Future<Output = Vec<crate::mcp::ToolDefinition>> + Send;
+
+    /// Check if any MCP tools are available.
+    ///
+    /// # Returns
+    ///
+    /// Returns true if MCP is enabled and there are tools available.
+    fn has_tools(&self) -> impl Future<Output = bool> + Send;
 }
 
 #[cfg(test)]

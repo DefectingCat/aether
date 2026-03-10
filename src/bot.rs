@@ -157,12 +157,13 @@ impl Bot {
         let ai_service = AiService::new(&config).await;
 
         let handler = EventHandler::new(
-            ai_service,
+            ai_service.clone(),
             user_id.to_owned(),
             client.clone(),
             &config,
             persona_store,
             muyu_store,
+            ai_service.inner_mcp_registry(),
         );
 
         Ok(Self { client, handler })

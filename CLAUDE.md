@@ -136,6 +136,8 @@ src/
 - `VISION_MODEL` - Vision 模型（默认使用 OPENAI_MODEL）
 - `VISION_MAX_IMAGE_SIZE` - 图片最大尺寸（默认 1024）
 - `PROXY` - HTTP 代理 URL（可选）
+- `MCP_ENABLED` - 启用 MCP 集成（默认 true）
+- `MCP_BUILTIN_TOOLS_ENABLED` - 启用内置 MCP 工具（默认 true）
 
 ## 机器人命令
 
@@ -162,6 +164,11 @@ src/
 - `!reset` - 清除当前会话历史
 - 发送图片 - 分析图片内容
 - 回复图片 - 分析引用的图片
+
+**MCP 命令：**
+- `!mcp list` - 列出可用的 MCP 工具
+- `!mcp servers` - 查看 MCP 服务器状态  
+- `!mcp reload` - 重载 MCP 配置（Bot 所有者）
 
 ## 代码风格
 

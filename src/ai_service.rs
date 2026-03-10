@@ -164,7 +164,6 @@ impl AiService {
     }
 
     /// 执行普通（非流式）聊天。
-    #[allow(dead_code)]
     pub async fn chat(&self, session_id: &str, prompt: &str) -> Result<String> {
         // 添加用户消息到历史（使用独立作用域限制锁的生命周期）
         {
@@ -207,7 +206,6 @@ impl AiService {
     ///
     /// 如果 MCP 启用且有可用工具，AI 可以自动调用工具来完成任务。
     /// 工具调用会自动循环，直到 AI 返回最终文本回复。
-    #[allow(dead_code)]
     pub async fn chat_with_tools(
         &self,
         session_id: &str,
@@ -364,12 +362,53 @@ impl AiService {
             .as_ref()
             .ok_or_else(|| anyhow::anyhow!("MCP not enabled"))?;
 
-        // 执行工具
+        // 执行工具 with retry logic
         let registry = mcp_registry.read().await;
-        let result = registry.execute_tool(tool_name, arguments).await?;
+        let result = self
+            .execute_tool_with_retry(&registry, tool_name, arguments)
+            .await?;
 
         // 将 ToolResult 转换为 JSON
         Ok(serde_json::to_value(result)?)
+    }
+
+    /// 执行工具调用，带有重试逻辑
+    async fn execute_tool_with_retry(
+        &self,
+        registry: &crate::mcp::ToolRegistry,
+        tool_name: &str,
+        arguments: serde_json::Value,
+    ) -> Result<crate::mcp::ToolResult> {
+        const MAX_RETRIES: u32 = 3;
+        const BASE_DELAY_MS: u64 = 100;
+
+        for attempt in 0..=MAX_RETRIES {
+            match registry.execute_tool(tool_name, arguments.clone()).await {
+                Ok(result) => return Ok(result),
+                Err(e) if attempt < MAX_RETRIES => {
+                    let delay_ms = BASE_DELAY_MS * 2u64.pow(attempt);
+                    tracing::warn!(
+                        "工具执行失败 (尝试 {}/{}): {}, 重试将在 {}ms 后进行",
+                        attempt + 1,
+                        MAX_RETRIES + 1,
+                        e,
+                        delay_ms
+                    );
+                    tokio::time::sleep(tokio::time::Duration::from_millis(delay_ms)).await;
+                }
+                Err(e) => {
+                    tracing::error!("工具执行最终失败: {}", e);
+                    return Ok(crate::mcp::ToolResult {
+                        success: false,
+                        content: String::new(),
+                        error: Some(format!("工具执行失败: {}", e)),
+                    });
+                }
+            }
+        }
+
+        // This should never be reached due to the loop logic
+        unreachable!()
     }
 
     /// 执行带自定义系统提示词的聊天。
@@ -438,7 +477,6 @@ impl AiService {
     /// # Arguments
     ///
     /// * `session_id` - 要重置的会话标识符
-    #[allow(dead_code)]
     pub async fn reset_conversation(&self, session_id: &str) {
         let mut conv = self.inner.conversation.write().await;
         conv.reset(session_id);
@@ -454,7 +492,6 @@ impl AiService {
     }
 
     /// 获取 MCP 工具注册表（如果启用）
-    #[allow(dead_code)]
     pub fn inner_mcp_registry(&self) -> Option<Arc<RwLock<crate::mcp::ToolRegistry>>> {
         self.inner.mcp_registry.clone()
     }
@@ -487,7 +524,6 @@ impl AiService {
     }
 
     /// 重置指定会话的历史记录。
-    #[allow(dead_code)]
     pub async fn chat_stream(&self, session_id: &str, prompt: &str) -> Result<ChatStreamResponse> {
         // 添加用户消息到历史
         {
@@ -624,7 +660,6 @@ impl AiService {
     }
 
     /// 执行带图片的流式聊天（Vision API）。
-    #[allow(dead_code)]
     pub async fn chat_with_image_stream(
         &self,
         session_id: &str,
@@ -853,8 +888,21 @@ impl AiServiceTrait for AiService {
         self.mcp_server_manager()
     }
 
+    fn inner_mcp_registry(&self) -> Option<Arc<RwLock<crate::mcp::ToolRegistry>>> {
+        self.inner_mcp_registry()
+    }
+
     async fn list_mcp_tools(&self) -> Vec<crate::mcp::ToolDefinition> {
         self.list_mcp_tools().await
+    }
+
+    async fn has_tools(&self) -> bool {
+        if let Some(ref registry) = self.inner.mcp_registry {
+            let registry = registry.read().await;
+            !registry.is_empty()
+        } else {
+            false
+        }
     }
 }
 

@@ -12,11 +12,11 @@
 //!
 //! ## 模块结构
 //!
-//! - [`config`]: MCP 配置管理，支持 TOML 和环境变量
-//! - [`tool_registry`]: 工具注册表，统一管理所有工具
-//! - [`builtin`]: 内置工具实现（web_fetch 等）
-//! - [`transport`]: MCP 传输层（Stdio/HTTP/SSE）
-//! - [`server_manager`]: MCP 服务器管理器，处理连接和工具发现
+//! - [`config`][]: MCP 配置管理，支持 TOML 和环境变量
+//! - [`tool_registry`][]: 工具注册表，统一管理所有工具
+//! - [`builtin`][]: 内置工具实现（web_fetch 等）
+//! - [`transport`][]: MCP 传输层（Stdio/HTTP/SSE）
+//! - [`server_manager`][]: MCP 服务器管理器，处理连接和工具发现
 //!
 //! ## 架构设计
 //!
@@ -77,20 +77,12 @@
 //! - [MCP 官方文档](https://modelcontextprotocol.io/)
 //! - [rmcp SDK](https://crates.io/crates/rmcp)
 
-#[allow(dead_code)]
 pub mod builtin;
 pub mod config;
-#[allow(dead_code)]
 pub mod server_manager;
-#[allow(dead_code)]
 pub mod tool_registry;
-#[allow(dead_code)]
 pub mod transport;
 
 pub use config::{BuiltinToolsConfig, McpConfig, WebFetchConfig};
-#[allow(unused_imports)]
-pub use config::{ExternalServerConfig, TransportType};
-#[allow(unused_imports)]
-pub use server_manager::{McpServer, McpServerManager, ServerStatus};
-#[allow(unused_imports)]
+pub use server_manager::{McpServerManager, ServerStatus};
 pub use tool_registry::{Tool, ToolDefinition, ToolRegistry, ToolResult, ToolSource};

@@ -69,12 +69,105 @@ BOT_OWNERS=@user1:matrix.org,@user2:matrix.org
 MAX_HISTORY=10
 STREAMING_ENABLED=true
 VISION_ENABLED=true
+MCP_ENABLED=true
+MCP_BUILTIN_TOOLS_ENABLED=true
 ```
 
 ### 运行
 
 ```bash
 make run
+```
+
+## MCP 配置详解
+
+MCP (Model Context Protocol) 集成支持内置工具和外部 MCP 服务器。配置可以通过 `.env` 文件或 `config.toml` 文件进行。
+
+### 环境变量配置
+
+```env
+# 启用 MCP 功能
+MCP_ENABLED=true
+
+# 启用内置工具
+MCP_BUILTIN_TOOLS_ENABLED=true
+
+# Web Fetch 工具配置
+MCP_BUILTIN_WEB_FETCH_ENABLED=true
+MCP_BUILTIN_WEB_FETCH_MAX_LENGTH=10000
+MCP_BUILTIN_WEB_FETCH_TIMEOUT=10
+```
+
+### TOML 配置文件
+
+创建 `config.toml` 文件以配置更复杂的 MCP 设置：
+
+```toml
+[mcp]
+enabled = true
+
+[mcp.builtin_tools]
+enabled = true
+
+[mcp.builtin_tools.web_fetch]
+enabled = true
+max_length = 10000
+timeout = 10
+
+[[mcp.external_servers]]
+name = "filesystem"
+transport = "stdio"
+command = "npx"
+args = ["-y", "@modelcontextprotocol/server-filesystem", "/home/user/documents"]
+enabled = true
+
+[[mcp.external_servers]]
+name = "database"
+transport = "stdio"  
+command = "mcp-server-sqlite"
+args = ["--database", "/path/to/database.db"]
+enabled = true
+```
+
+### 外部 MCP 服务器支持
+
+当前支持的传输类型：
+- **stdio**: 通过标准输入输出通信（推荐）
+- **HTTP/SSE**: 通过 HTTP API 通信（需要 rmcp 1.1+，当前版本暂不支持）
+
+注意：HTTP/SSE 传输在当前版本中不可用，因为 rmcp 1.0.0 不支持这些功能。
+
+### MCP 使用示例
+
+#### 基本工具调用
+
+当 MCP 工具可用时，AI 会自动决定是否调用工具：
+
+```
+用户: ! 获取 https://example.com 的内容
+AI: [自动调用 web_fetch 工具获取网页内容并返回摘要]
+```
+
+#### 查看可用工具
+
+使用 `!mcp list` 命令查看所有可用的 MCP 工具：
+
+```
+!mcp list
+```
+
+#### 管理 MCP 服务器
+
+使用 `!mcp servers` 查看外部 MCP 服务器连接状态：
+
+```
+!mcp servers
+```
+
+只有 Bot 所有者可以重载 MCP 配置：
+
+```
+!mcp reload
 ```
 
 ## 命令参考
@@ -194,6 +287,10 @@ make run
 | `VISION_ENABLED` | 启用图片理解 | `true` |
 | `VISION_MODEL` | Vision 模型名称 | 使用 `OPENAI_MODEL` |
 | `VISION_MAX_IMAGE_SIZE` | 图片最大边长（像素） | `1024` |
+| `PROXY` | HTTP/SOCKS5 代理 URL | — |
+| `LOG_LEVEL` | 日志级别 | `info` |
+| `MCP_ENABLED` | 启用 MCP 集成 | `true` |
+| `MCP_BUILTIN_TOOLS_ENABLED` | 启用内置 MCP 工具 | `true` |
 | `PROXY` | HTTP/SOCKS5 代理 URL | — |
 | `LOG_LEVEL` | 日志级别 | `info` |
 | `MCP_ENABLED` | 启用 MCP 集成 | `true` |
