@@ -31,3 +31,40 @@ Implement chat history persistence by:
 1. Adding methods to `Database` struct for saving/loading chat history
 2. Integrating database persistence into `ConversationManager` 
 3. Creating comprehensive tests for chat history functionality
+---
+
+## Issue: cargo-tarpaulin Not Available for Test Coverage
+
+**Date**: Tue Mar 10 2026
+
+**Description**:
+`cargo-tarpaulin` (Rust code coverage tool) is not installed and cannot be used to generate test coverage reports.
+
+**Current State**:
+- ❌ `cargo tarpaulin` command not found
+- ❌ No alternative coverage tool configured
+- ❌ No coverage reporting scripts available
+- ❌ No `.codecov.yml` or similar configuration
+
+**Impact**:
+- Cannot measure test coverage percentage
+- Cannot identify untested code paths
+- Cannot track coverage trends over time
+- No visibility into testing gaps
+
+**Attempted Resolution**:
+```bash
+cargo tarpaulin --version
+# Result: error: no such command: `tarpaulin`
+```
+
+**Recommended Actions**:
+1. Install cargo-tarpaulin: `cargo install cargo-tarpaulin`
+2. Create coverage script: `scripts/coverage.sh`
+3. Add coverage configuration to project root
+4. Consider CI integration (GitHub Actions, Codecov)
+
+**Platform Note**:
+cargo-tarpaulin requires Linux and may not work on macOS. Alternative tools:
+- `cargo-llvm-cov` (cross-platform, LLVM-based)
+- `tarpaulin` in Docker/Linux CI only

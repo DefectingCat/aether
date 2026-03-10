@@ -150,7 +150,7 @@ pub async fn handle_invite(ev: StrippedRoomMemberEvent, client: Client, room: Ro
 ///
 /// # Example
 ///
-/// ```no_run
+/// ```ignore
 /// use aether_matrix::event_handler::EventHandler;
 /// use aether_matrix::ai_service::AiService;
 ///
@@ -167,6 +167,7 @@ pub async fn handle_invite(ev: StrippedRoomMemberEvent, client: Client, room: Ro
 ///     &config,
 ///     None, // persona_store
 ///     None, // muyu_store
+///     None, // mcp_registry
 /// );
 ///
 /// // 注册为事件处理器

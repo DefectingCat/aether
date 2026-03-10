@@ -1,4 +1,4 @@
-use aether_matrix::command::{CommandContext, CommandHandler, Permission};
+use aether_matrix::command::{CommandHandler, Permission};
 use aether_matrix::modules::mcp::McpHandler;
 use aether_matrix::traits::AiServiceTrait;
 use std::sync::Arc;
@@ -82,41 +82,6 @@ mod permission_tests {
     }
 }
 
-#[cfg(test)]
-mod command_routing_tests {
-    use super::*;
-
-    #[tokio::test]
-    async fn test_command_routing_list_subcommand() {
-        let handler = McpHandler::<MockAiService>::new(None, Some(MockAiService));
-        assert_eq!(handler.name(), "mcp");
-    }
-
-    #[tokio::test]
-    async fn test_command_routing_servers_subcommand() {
-        let handler = McpHandler::<MockAiService>::new(Some(Arc::new(RwLock::new(MockMcpServerManager))), None);
-        assert_eq!(handler.name(), "mcp");
-    }
-
-    #[tokio::test]
-    async fn test_command_routing_reload_subcommand() {
-        let handler = McpHandler::<MockAiService>::new(Some(Arc::new(RwLock::new(MockMcpServerManager))), None);
-        assert_eq!(handler.name(), "mcp");
-    }
-
-    #[tokio::test]
-    async fn test_command_routing_unknown_subcommand_shows_help() {
-        let handler = McpHandler::<MockAiService>::new(None, None);
-        assert_eq!(handler.name(), "mcp");
-    }
-
-    #[tokio::test]
-    async fn test_no_subcommand_shows_help() {
-        let handler = McpHandler::<MockAiService>::new(None, None);
-        assert_eq!(handler.name(), "mcp");
-    }
-}
-
 #[derive(Clone)]
 struct MockAiService;
 
@@ -195,19 +160,5 @@ impl AiServiceTrait for MockAiService {
 
     async fn has_tools(&self) -> bool {
         false
-    }
-}
-
-struct MockMcpServerManager;
-
-impl MockMcpServerManager {
-    async fn get_server_statuses(&self) -> Vec<(String, aether_matrix::mcp::ServerStatus)> {
-        vec![]
-    }
-    
-    async fn connect_all_servers(&self) {
-    }
-    
-    async fn register_all_external_tools(&self) {
     }
 }

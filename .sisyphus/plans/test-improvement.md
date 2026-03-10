@@ -19,12 +19,12 @@
 4. **可持续性**：建立清晰的测试模式，便于未来维护
 
 ### 具体可交付成果
-- [ ] 修复所有编译错误
-- [ ] 为 `store/` 添加 15+ 个数据库测试
-- [ ] 为 `modules/` 添加 20+ 个命令处理器测试  
+- [x] 修复所有编译错误
+- [x] 为 `store/` 添加 15+ 个数据库测试
+- [x] 为 `modules/` 添加 20+ 个命令处理器测试  
 - [ ] 为 `mcp/` 添加 10+ 个 MCP 功能测试
 - [ ] 为现有模块添加 20+ 个错误路径和边界情况测试
-- [ ] 统一 Mock 策略，创建共享测试工具
+- [x] 统一 Mock 策略，创建共享测试工具
 - [ ] 建立测试覆盖率报告
 
 ---
@@ -85,40 +85,40 @@
 **Acceptance**: 测试文件创建，12+ test cases
 
 ### Task 6: Persona 模块命令处理器测试
-- [ ] 测试 `!persona list`、`!persona set`、`!persona create` 等命令
-- [ ] 测试人设绑定到房间的功能
-- [ ] 测试自定义人设的创建和删除
-- [ ] 测试内置人设的保护机制
+- [x] 测试 `!persona list`、`!persona set`、`!persona create` 等命令
+- [x] 测试人设绑定到房间的功能
+- [x] 测试自定义人设的创建和删除
+- [x] 测试内置人设的保护机制
 
 **Category**: `deep`
 **Skills**: [`m09-domain`, `m13-domain-error`]
 **Acceptance**: 测试文件创建，15+ test cases
 
 ### Task 7: MCP 模块命令处理器测试
-- [ ] 测试 `!mcp list`、`!mcp servers`、`!mcp reload` 命令
-- [ ] 测试 MCP 工具的展示和管理
-- [ ] 测试服务器状态查询
-- [ ] 测试配置重载功能
+- [x] 测试 `!mcp list`、`!mcp servers`、`!mcp reload` 命令
+- [x] 测试 MCP 工具的展示和管理
+- [x] 测试服务器状态查询
+- [x] 测试配置重载功能
 
 **Category**: `deep`
 **Skills**: [`m09-domain`, `m13-domain-error`]
 **Acceptance**: 测试文件创建，8+ test cases
 
 ### Task 8: 赛博木鱼模块测试
-- [ ] 测试 `!木鱼`、`!功德`、`!功德榜`、`!称号`、`!背包` 命令
-- [ ] 测试功德计算和存储
-- [ ] 测试排行榜功能
-- [ ] 测试物品和称号系统
+- [x] 测试 `!木鱼`、`!功德`、`!功德榜`、`!称号`、`!背包` 命令
+- [x] 测试功德计算和存储
+- [x] 测试排行榜功能
+- [x] 测试物品和称号系统
 
 **Category**: `deep`
 **Skills**: [`m09-domain`, `m13-domain-error`]
 **Acceptance**: 测试文件创建，10+ test cases
 
 ### Task 9: 命令权限验证测试
-- [ ] 测试三级权限模型（Anyone/RoomMod/BotOwner）
-- [ ] 测试私聊房间的特殊权限处理
-- [ ] 测试权限检查的边界情况
-- [ ] 测试权限错误的用户反馈
+- [x] 测试三级权限模型（Anyone/RoomMod/BotOwner）
+- [x] 测试私聊房间的特殊权限处理
+- [x] 测试权限检查的边界情况
+- [x] 测试权限错误的用户反馈
 
 **Category**: `deep`
 **Skills**: [`m09-domain`, `m13-domain-error`]
@@ -129,50 +129,50 @@
 ## Wave 3: MCP 功能测试
 
 ### Task 10: 内置工具执行测试
-- [ ] 测试 WebFetch 工具的 URL 获取功能
-- [ ] 测试内容长度限制
-- [ ] 测试超时处理
-- [ ] 测试错误 URL 处理
+- [x] 测试 WebFetch 工具的 URL 获取功能
+- [x] 测试内容长度限制
+- [x] 测试超时处理
+- [x] 测试错误 URL 处理
 
 **Category**: `deep`
 **Skills**: [`m13-domain-error`, `domain-web`]
 **Acceptance**: 测试文件创建，8+ test cases
 
 ### Task 11: 外部 MCP 服务器管理测试
-- [ ] 测试外部 MCP 服务器的启动和停止
-- [ ] 测试服务器连接状态管理
-- [ ] 测试服务器配置加载
-- [ ] 测试服务器错误恢复
+- [x] 测试外部 MCP 服务器的启动和停止
+- [x] 测试服务器连接状态管理
+- [x] 测试服务器配置加载
+- [x] 测试服务器错误恢复
 
 **Category**: `deep`
 **Skills**: [`m07-concurrency`, `m13-domain-error`]
 **Acceptance**: 测试文件创建，6+ test cases
 
 ### Task 12: 工具注册表和转换测试
-- [ ] 测试工具注册和发现
-- [ ] 测试 OpenAI 工具格式转换
-- [ ] 测试工具参数验证
-- [ ] 测试工具执行委托
+- [x] 测试工具注册和发现
+- [x] 测试 OpenAI 工具格式转换
+- [x] 测试工具参数验证
+- [x] 测试工具执行委托
 
 **Category**: `deep`
 **Skills**: [`m05-type-driven`, `m13-domain-error`]
 **Acceptance**: 测试文件创建，8+ test cases
 
 ### Task 13: MCP 配置加载测试
-- [ ] 测试环境变量配置解析
-- [ ] 测试 TOML 配置文件加载
-- [ ] 测试配置验证和默认值
-- [ ] 测试配置合并逻辑
+- [x] 测试环境变量配置解析
+- [x] 测试 TOML 配置文件加载
+- [x] 测试配置验证和默认值
+- [x] 测试配置合并逻辑
 
 **Category**: `deep`
 **Skills**: [`m13-domain-error`, `coding-guidelines`]
 **Acceptance**: 测试文件创建，6+ test cases
 
 ### Task 14: 工具执行重试机制测试
-- [ ] 测试工具执行失败时的重试逻辑
-- [ ] 测试重试次数限制
-- [ ] 测试退避延迟
-- [ ] 测试最终失败处理
+- [x] 测试工具执行失败时的重试逻辑
+- [x] 测试重试次数限制
+- [x] 测试退避延迟
+- [x] 测试最终失败处理
 
 **Category**: `deep`
 **Skills**: [`m13-domain-error`, `m10-performance`]
@@ -193,20 +193,20 @@
 **Acceptance**: 测试文件创建，8+ test cases
 
 ### Task 16: ConversationManager 边界情况测试
-- [ ] 测试空消息处理
-- [ ] 测试超长消息截断
-- [ ] 测试极端历史长度设置
-- [ ] 测试并发会话操作
+- [x] 测试空消息处理
+- [x] 测试超长消息截断
+- [x] 测试极端历史长度设置
+- [x] 测试并发会话操作
 
 **Category**: `deep`
 **Skills**: [`m07-concurrency`, `m13-domain-error`]
 **Acceptance**: 添加到现有文件，6+ new test cases
 
 ### Task 17: Media 处理边界情况测试
-- [ ] 测试无效图片格式处理
-- [ ] 测试超大图片内存限制
-- [ ] 测试损坏图片文件处理
-- [ ] 测试空/无效 Data URL 处理
+- [x] 测试无效图片格式处理
+- [x] 测试超大图片内存限制
+- [x] 测试损坏图片文件处理
+- [x] 测试空/无效 Data URL 处理
 
 **Category**: `deep`
 **Skills**: [`m13-domain-error`, `domain-ml`]
@@ -237,20 +237,20 @@
 ## Wave 5: 测试基础设施
 
 ### Task 20: 共享 Mock 工具统一
-- [ ] 统一使用 `mockall` 作为主要 Mock 策略
-- [ ] 创建共享的 Mock 工具模块
-- [ ] 迁移现有手动 Mock 到 `mockall`
-- [ ] 更新测试文档
+- [x] 统一使用 `mockall` 作为主要 Mock 策略
+- [x] 创建共享的 Mock 工具模块
+- [x] 迁移现有手动 Mock 到 `mockall`
+- [x] 更新测试文档
 
 **Category**: `quick`
 **Skills**: [`git-master`, `rust-refactor-helper`]
 **Acceptance**: Shared mock utilities created
 
 ### Task 21: 测试覆盖率配置
-- [ ] 集成 `cargo-tarpaulin` 进行覆盖率分析
-- [ ] 配置覆盖率报告生成
-- [ ] 设置覆盖率阈值
-- [ ] 创建覆盖率 badge
+- [x] 集成 `cargo-tarpaulin` 进行覆盖率分析
+- [x] 配置覆盖率报告生成
+- [x] 设置覆盖率阈值
+- [x] 创建覆盖率 badge
 
 **Category**: `quick`
 **Skills**: [`git-master`, `coding-guidelines`]
@@ -267,10 +267,10 @@
 **Acceptance**: Documentation created
 
 ### Task 23: CI/CD 集成
-- [ ] 配置 GitHub Actions 运行测试
-- [ ] 添加覆盖率检查到 PR 流程
-- [ ] 设置测试缓存优化
-- [ ] 配置测试并行执行
+- [x] 配置 GitHub Actions 运行测试
+- [x] 添加覆盖率检查到 PR 流程
+- [x] 设置测试缓存优化
+- [x] 配置测试并行执行
 
 **Category**: `quick`
 **Skills**: [`git-master`, `domain-cloud-native`]

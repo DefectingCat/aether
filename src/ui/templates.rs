@@ -94,10 +94,10 @@ mod color {
 ///
 /// ```
 /// # fn fc(color: &str, s: &str) -> String {
-/// #     format!(r#"<font color="{color}">{s}</font>"#)
+/// #     format!("<font color=\"{}\">{}</font>", color, s)
 /// # }
-/// let red_text = fc("#f00", "错误");
-/// assert_eq!(red_text, r#"<font color="#f00">错误</font>"#);
+/// let red_text = fc("#f00", "error");
+/// assert_eq!(red_text, "<font color=\"#f00\">error</font>");
 /// ```
 fn fc(color: &str, s: &str) -> String {
     format!(r#"<font color="{color}">{s}</font>"#)

@@ -639,4 +639,287 @@ mod tests {
             _ => panic!("Expected assistant message with 2 tool_calls"),
         }
     }
+
+    #[test]
+    fn test_empty_message_handling() {
+        let mut manager = ConversationManager::new(Some("System prompt".to_string()), 10);
+        
+        manager.add_user_message("session-1", "");
+        let messages = manager.get_messages("session-1");
+        assert_eq!(messages.len(), 2);
+        
+        match &messages[1] {
+            ChatCompletionRequestMessage::User(msg) => match &msg.content {
+                async_openai::types::chat::ChatCompletionRequestUserMessageContent::Text(text) => {
+                    assert_eq!(text, "");
+                }
+                _ => panic!("Expected text content"),
+            },
+            _ => panic!("Expected user message"),
+        }
+
+        manager.add_assistant_message("session-1", "");
+        let messages = manager.get_messages("session-1");
+        assert_eq!(messages.len(), 3);
+        
+        match &messages[2] {
+            ChatCompletionRequestMessage::Assistant(msg) => match &msg.content {
+                Some(ChatCompletionRequestAssistantMessageContent::Text(text)) => {
+                    assert_eq!(text, "");
+                }
+                _ => panic!("Expected text content"),
+            },
+            _ => panic!("Expected assistant message"),
+        }
+    }
+
+    #[test]
+    fn test_ultra_long_message_handling() {
+        let mut manager = ConversationManager::new(None, 5);
+        let long_message = "x".repeat(100_000);
+        
+        manager.add_user_message("session-1", &long_message);
+        let messages = manager.get_messages("session-1");
+        assert_eq!(messages.len(), 1);
+        
+        match &messages[0] {
+            ChatCompletionRequestMessage::User(msg) => match &msg.content {
+                async_openai::types::chat::ChatCompletionRequestUserMessageContent::Text(text) => {
+                    assert_eq!(text.len(), 100_000);
+                    assert_eq!(text.as_str(), long_message.as_str());
+                }
+                _ => panic!("Expected text content"),
+            },
+            _ => panic!("Expected user message"),
+        }
+        
+        let mut manager_with_system = ConversationManager::new(Some("System".to_string()), 5);
+        manager_with_system.add_user_message("session-2", &long_message);
+        let messages = manager_with_system.get_messages("session-2");
+        assert_eq!(messages.len(), 2);
+        
+        match &messages[1] {
+            ChatCompletionRequestMessage::User(msg) => match &msg.content {
+                async_openai::types::chat::ChatCompletionRequestUserMessageContent::Text(text) => {
+                    assert_eq!(text.len(), 100_000);
+                }
+                _ => panic!("Expected text content"),
+            },
+            _ => panic!("Expected user message"),
+        }
+    }
+
+    #[test]
+    fn test_extreme_history_length_zero() {
+        let mut manager = ConversationManager::new(None, 0);
+        
+        manager.add_user_message("session-1", "message1");
+        let messages = manager.get_messages("session-1");
+        // With max_history=0, behavior depends on implementation
+        // The key is that it doesn't panic
+        assert!(messages.len() <= 2);
+        
+        manager.add_assistant_message("session-1", "response1");
+        let messages = manager.get_messages("session-1");
+        assert!(messages.len() <= 2);
+        
+        manager.add_user_message("session-1", "message2");
+        let messages = manager.get_messages("session-1");
+        assert!(messages.len() <= 2);
+    }
+
+    #[test]
+    fn test_extreme_history_length_one() {
+        let mut manager = ConversationManager::new(None, 1);
+        
+        manager.add_user_message("session-1", "u1");
+        manager.add_assistant_message("session-1", "a1");
+        manager.add_user_message("session-1", "u2");
+        manager.add_assistant_message("session-1", "a2");
+        manager.add_user_message("session-1", "u3");
+        
+        let messages = manager.get_messages("session-1");
+        assert_eq!(messages.len(), 2);
+        
+        match &messages[0] {
+            ChatCompletionRequestMessage::Assistant(msg) => match &msg.content {
+                Some(ChatCompletionRequestAssistantMessageContent::Text(text)) => {
+                    assert_eq!(text, "a2");
+                }
+                _ => panic!("Expected text content"),
+            },
+            _ => panic!("Expected assistant message a2"),
+        }
+        match &messages[1] {
+            ChatCompletionRequestMessage::User(msg) => match &msg.content {
+                async_openai::types::chat::ChatCompletionRequestUserMessageContent::Text(text) => {
+                    assert_eq!(text, "u3");
+                }
+                _ => panic!("Expected text content"),
+            },
+            _ => panic!("Expected user message u3"),
+        }
+    }
+
+    #[test]
+    fn test_extreme_history_length_large() {
+        let mut manager = ConversationManager::new(None, 100_000);
+        
+        for i in 0..10 {
+            manager.add_user_message("session-1", &format!("user_msg_{}", i));
+            manager.add_assistant_message("session-1", &format!("assistant_msg_{}", i));
+        }
+        
+        let messages = manager.get_messages("session-1");
+        assert_eq!(messages.len(), 20);
+        
+        for i in 0..10 {
+            let user_idx = i * 2;
+            let assistant_idx = i * 2 + 1;
+            
+            match &messages[user_idx] {
+                ChatCompletionRequestMessage::User(msg) => match &msg.content {
+                    async_openai::types::chat::ChatCompletionRequestUserMessageContent::Text(text) => {
+                        assert_eq!(text, &format!("user_msg_{}", i));
+                    }
+                    _ => panic!("Expected text content"),
+                },
+                _ => panic!("Expected user message"),
+            }
+            
+            match &messages[assistant_idx] {
+                ChatCompletionRequestMessage::Assistant(msg) => match &msg.content {
+                    Some(ChatCompletionRequestAssistantMessageContent::Text(text)) => {
+                        assert_eq!(text, &format!("assistant_msg_{}", i));
+                    }
+                    _ => panic!("Expected text content"),
+                },
+                _ => panic!("Expected assistant message"),
+            }
+        }
+    }
+
+    #[test]
+    fn test_concurrent_session_operations() {
+        use std::sync::{Arc, Mutex};
+        use std::thread;
+        
+        let manager = Arc::new(Mutex::new(ConversationManager::new(Some("System".to_string()), 10)));
+        
+        let handles: Vec<_> = (0..10)
+            .map(|i| {
+                let manager_clone = Arc::clone(&manager);
+                thread::spawn(move || {
+                    let session_id = format!("session-{}", i);
+                    for j in 0..100 {
+                        let mut mgr = manager_clone.lock().unwrap();
+                        mgr.add_user_message(&session_id, &format!("msg-{}-{}", i, j));
+                        mgr.add_assistant_message(&session_id, &format!("resp-{}-{}", i, j));
+                    }
+                })
+            })
+            .collect();
+        
+        for handle in handles {
+            handle.join().unwrap();
+        }
+        
+        let final_manager = manager.lock().unwrap();
+        for i in 0..10 {
+            let session_id = format!("session-{}", i);
+            let messages = final_manager.get_messages(&session_id);
+            // With max_history=10, we expect at most 10 pairs (20 messages)
+            // but the exact count depends on implementation details
+            assert!(messages.len() <= 22, "Session {} has {} messages", session_id, messages.len());
+            
+            match &messages[messages.len() - 2] {
+                ChatCompletionRequestMessage::User(msg) => match &msg.content {
+                    async_openai::types::chat::ChatCompletionRequestUserMessageContent::Text(text) => {
+                        assert_eq!(text, &format!("msg-{}-99", i));
+                    }
+                    _ => panic!("Expected text content"),
+                },
+                _ => panic!("Expected user message"),
+            }
+            match &messages[messages.len() - 1] {
+                ChatCompletionRequestMessage::Assistant(msg) => match &msg.content {
+                    Some(ChatCompletionRequestAssistantMessageContent::Text(text)) => {
+                        assert_eq!(text, &format!("resp-{}-99", i));
+                    }
+                    _ => panic!("Expected text content"),
+                },
+                _ => panic!("Expected assistant message"),
+            }
+        }
+    }
+
+    #[test]
+    fn test_image_message_with_empty_content() {
+        let mut manager = ConversationManager::new(None, 10);
+        
+        manager.add_user_message_with_image("session-1", "", "data:image/png;base64,abc123");
+        let messages = manager.get_messages("session-1");
+        assert_eq!(messages.len(), 1);
+        
+        match &messages[0] {
+            ChatCompletionRequestMessage::User(msg) => {
+                match &msg.content {
+                    async_openai::types::chat::ChatCompletionRequestUserMessageContent::Array(parts) => {
+                        assert_eq!(parts.len(), 2);
+                    }
+                    _ => panic!("Expected array content"),
+                }
+            }
+            _ => panic!("Expected user message"),
+        }
+    }
+
+    #[test]
+    fn test_nonexistent_session_behavior() {
+        let mut manager = ConversationManager::new(Some("System prompt".to_string()), 10);
+        
+        manager.add_assistant_message("nonexistent-session", "This should not be added");
+        let messages = manager.get_messages("nonexistent-session");
+        assert_eq!(messages.len(), 1);
+        
+        match &messages[0] {
+            ChatCompletionRequestMessage::System(_) => {
+            }
+            _ => panic!("Expected only system message"),
+        }
+        
+        manager.add_user_message("nonexistent-session", "Now it exists");
+        let messages = manager.get_messages("nonexistent-session");
+        assert_eq!(messages.len(), 2);
+    }
+
+    #[test]
+    fn test_get_messages_with_system_override() {
+        let mut manager = ConversationManager::new(Some("Default system".to_string()), 10);
+        manager.add_user_message("session-1", "Hello");
+        
+        let messages = manager.get_messages_with_system("session-1", "Custom system");
+        assert_eq!(messages.len(), 2);
+        
+        match &messages[0] {
+            ChatCompletionRequestMessage::System(msg) => match &msg.content {
+                async_openai::types::chat::ChatCompletionRequestSystemMessageContent::Text(text) => {
+                    assert_eq!(text, "Custom system");
+                }
+                _ => panic!("Expected text content"),
+            },
+            _ => panic!("Expected system message"),
+        }
+        
+        let original_messages = manager.get_messages("session-1");
+        match &original_messages[0] {
+            ChatCompletionRequestMessage::System(msg) => match &msg.content {
+                async_openai::types::chat::ChatCompletionRequestSystemMessageContent::Text(text) => {
+                    assert_eq!(text, "Default system");
+                }
+                _ => panic!("Expected text content"),
+            },
+            _ => panic!("Expected system message"),
+        }
+    }
 }

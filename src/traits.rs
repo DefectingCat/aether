@@ -38,7 +38,7 @@ use crate::mcp::McpServerManager;
 ///
 /// 在流式输出过程中累积 AI 返回的内容，支持多次追加和查询。
 /// 使用 `Arc<Mutex<StreamingState>>` 在多个异步任务间共享。
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct StreamingState {
     pub accumulated: String,
 }

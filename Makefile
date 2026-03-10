@@ -14,6 +14,7 @@ help:
 	@echo "  make lint     - 运行 clippy lint"
 	@echo "  make fix      - 自动修复代码问题并格式化"
 	@echo "  make clean    - 清理构建产物"
+	@echo "  make coverage - 运行测试覆盖率（需安装 cargo-tarpaulin 或 cargo-llvm-cov）"
 
 run:
 	cargo run
@@ -37,3 +38,18 @@ clean:
 
 fix:
 	cargo fix --allow-dirty --all-features && cargo fmt
+
+coverage:
+	@echo "Running test coverage..."
+	@if command -v cargo-tarpaulin > /dev/null 2>&1; then \
+		echo "Using cargo-tarpaulin..."; \
+		cargo tarpaulin --out Html --output-dir target/coverage/html; \
+	elif command -v cargo-llvm-cov > /dev/null 2>&1; then \
+		echo "Using cargo-llvm-cov..."; \
+		cargo llvm-cov --html --output-dir target/coverage/html; \
+	else \
+		echo "Error: No coverage tool found."; \
+		echo "Install: cargo install cargo-tarpaulin (Linux) or cargo install cargo-llvm-cov (macOS)"; \
+		exit 1; \
+	fi
+	@echo "Coverage report: target/coverage/html/index.html"

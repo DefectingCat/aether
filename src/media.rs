@@ -210,4 +210,86 @@ mod tests {
         // 应该返回原始数据
         assert!(!result.is_empty());
     }
+
+    #[test]
+    fn test_resize_image_if_needed_invalid_image_format() {
+        // 测试无效的图片格式（纯文本数据）
+        let invalid_data = b"This is not an image file at all!";
+        let result = resize_image_if_needed(invalid_data, 1024);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("无法解析图片数据"));
+    }
+
+    #[test]
+    fn test_resize_image_if_needed_corrupted_image_data() {
+        // 测试损坏的PNG数据（有效的PNG头部但损坏的内容）
+        let corrupted_png = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR\x00\x00\x00\x01\x00\x00\x00\x01\x08\x06\x00\x00\x00\x1f\x15\xc4\x89\x00\x00\x00\x0cIDAT\x08\xd7c\xf8\x0f\x00\x01\x00\x01\x00\x00\x00\x00\x00\x00\x00\x00\x00";
+        // This is a truncated PNG file - it has valid headers but incomplete data
+        let result = resize_image_if_needed(corrupted_png, 1024);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("无法解析图片数据"));
+    }
+
+    #[test]
+    fn test_resize_image_if_needed_empty_data() {
+        // 测试空数据
+        let empty_data: &[u8] = &[];
+        let result = resize_image_if_needed(empty_data, 1024);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("无法解析图片数据"));
+    }
+
+    #[test]
+    fn test_resize_image_if_needed_oversized_image() {
+        // 创建一个超大图片（超过最大尺寸）
+        // Using a reasonable size that's still testable but larger than max_size
+        let large_img = DynamicImage::new_rgb8(2048, 1536); // 2048x1536 > 1024
+        let mut output = Vec::new();
+        large_img.write_to(&mut Cursor::new(&mut output), image::ImageFormat::Png)
+            .unwrap();
+
+        // Should be resized to fit within 1024 max dimension
+        let result = resize_image_if_needed(&output, 1024).unwrap();
+        
+        // Verify it's still a valid PNG
+        assert!(result.starts_with(&[0x89, 0x50, 0x4E, 0x47]));
+        
+        // Load the result to verify dimensions
+        let resized_img = image::load_from_memory(&result).unwrap();
+        let (width, height) = (resized_img.width(), resized_img.height());
+        assert!(width <= 1024 && height <= 1024);
+        // Verify aspect ratio is preserved (2048:1536 = 4:3, so resized should maintain this)
+        let aspect_ratio = width as f32 / height as f32;
+        assert!((aspect_ratio - (4.0 / 3.0)).abs() < 0.1);
+    }
+
+    #[test]
+    fn test_encode_as_data_url_empty_data() {
+        // 测试空数据的Data URL编码
+        let empty_data: &[u8] = &[];
+        let result = encode_as_data_url(empty_data, "image/png");
+        assert_eq!(result, "data:image/png;base64,");
+    }
+
+    #[test]
+    fn test_encode_as_data_url_invalid_media_type() {
+        // 测试无效的媒体类型
+        let data = b"test";
+        let result = encode_as_data_url(data, "");
+        assert_eq!(result, "data:;base64,dGVzdA==");
+        
+        let result2 = encode_as_data_url(data, "invalid/type");
+        assert_eq!(result2, "data:invalid/type;base64,dGVzdA==");
+        // The function doesn't validate media types, so this should work
+    }
+
+    #[test]
+    fn test_resize_image_if_needed_unsupported_format() {
+        // Test with data that looks like a format but isn't supported
+        // Create some random binary data that doesn't correspond to any image format
+        let random_data = vec![0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0];
+        let result = resize_image_if_needed(&random_data, 1024);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("无法解析图片数据"));
+    }
 }
