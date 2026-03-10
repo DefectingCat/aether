@@ -300,11 +300,11 @@ impl<T: AiServiceTrait> EventHandler<T> {
 
         // 注册 Meme 梗图命令
         if config.meme.enabled {
-            if let Some(ref api_key) = config.meme.api_key {
-                let tenor = TenorClient::new(api_key.clone(), config.meme.limit);
-                command_gateway.register(Arc::new(MemeHandler::new(tenor)));
-                info!("Meme 命令已注册，可用命令: !meme <关键词>");
-            }
+            let tenor = config.meme.api_key.clone().map(|key| {
+                TenorClient::new(key, config.meme.limit)
+            });
+            command_gateway.register(Arc::new(MemeHandler::new(tenor)));
+            info!("Meme 命令已注册，可用命令: !meme <关键词>");
         }
 
         Self {

@@ -21,12 +21,12 @@ use crate::ui::{error, info_card};
 ///
 /// 任何房间成员都可以执行。
 pub struct MemeHandler {
-    tenor: TenorClient,
+    tenor: Option<TenorClient>,
 }
 
 impl MemeHandler {
     /// 创建新的 Meme 命令处理器。
-    pub fn new(tenor: TenorClient) -> Self {
+    pub fn new(tenor: Option<TenorClient>) -> Self {
         Self { tenor }
     }
 }
@@ -56,8 +56,17 @@ impl CommandHandler for MemeHandler {
             return send_html(&ctx.room, &html).await;
         }
 
+        // 检查是否配置了 Tenor API Key
+        let tenor = match &self.tenor {
+            Some(t) => t,
+            None => {
+                let html = error("梗图功能未配置。请在 .env 中设置 TENOR_API_KEY");
+                return send_html(&ctx.room, &html).await;
+            }
+        };
+
         // 搜索 GIF
-        let gif_result = match self.tenor.search(&query).await {
+        let gif_result = match tenor.search(&query).await {
             Ok(Some(result)) => result,
             Ok(None) => {
                 let html = error(&format!("没有找到匹配「{}」的梗图", query));
