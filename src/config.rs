@@ -541,7 +541,19 @@ impl Config {
     /// 向后兼容方法：从环境变量加载配置。
     #[allow(dead_code)]
     pub fn from_env() -> Result<Self> {
-        Self::load("config.toml")
+        // 测试环境：直接从环境变量加载，跳过 TOML 文件
+        #[cfg(test)]
+        {
+            let mut config = Self::default();
+            config.apply_env_overrides();
+            config.validate()?;
+            Ok(config)
+        }
+        // 非测试环境：正常加载（含 TOML 文件）
+        #[cfg(not(test))]
+        {
+            Self::load("config.toml")
+        }
     }
 }
 

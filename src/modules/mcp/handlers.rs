@@ -8,7 +8,7 @@ use tracing::info;
 
 use crate::command::{CommandContext, CommandHandler, Permission};
 use crate::mcp::{McpServerManager, ServerStatus};
-use crate::ui::{error, success, warning};
+use crate::ui::{error, info_card, success, warning};
 
 /// MCP 管理命令处理器。
 ///
@@ -213,14 +213,16 @@ impl<T: crate::traits::AiServiceTrait> McpHandler<T> {
         }
 
         let tool_count = tools.len();
-        let mut message = "🔧 **可用工具列表**：\n\n".to_string();
-        for tool in tools {
-            let desc = tool.description.lines().next().unwrap_or("无描述");
-            message.push_str(&format!("• **{}**: {}\n", tool.name, desc));
-        }
+        let items: Vec<(&str, &str)> = tools
+            .iter()
+            .map(|t| {
+                let desc = t.description.lines().next().unwrap_or("无描述");
+                (t.name.as_str(), Box::leak(desc.to_string().into_boxed_str()) as &str)
+            })
+            .collect();
 
-        message.push_str(&format!("\n📊 共 {} 个工具可用", tool_count));
-        send_html(&ctx.room, &message).await
+        let html = info_card(&format!("可用工具 ({})", tool_count), &items);
+        send_html(&ctx.room, &html).await
     }
 
     /// 处理 !mcp servers 命令
@@ -234,26 +236,23 @@ impl<T: crate::traits::AiServiceTrait> McpHandler<T> {
                 return send_html(&ctx.room, &html).await;
             }
 
-            let mut message = "🖥️ MCP服务器状态：\n\n".to_string();
-            for (name, status) in statuses {
-                let status_icon = match status {
-                    ServerStatus::Connected => "✅",
-                    ServerStatus::Connecting => "🔄",
-                    ServerStatus::Disconnected => "⚪",
-                    ServerStatus::Failed(_) => "❌",
-                };
+            let items: Vec<(&str, &str)> = statuses
+                .iter()
+                .map(|(name, status)| {
+                    let status_text = match status {
+                        ServerStatus::Connected => "✅ 已连接",
+                        ServerStatus::Connecting => "🔄 连接中",
+                        ServerStatus::Disconnected => "⚪ 未连接",
+                        ServerStatus::Failed(e) => {
+                            Box::leak(format!("❌ 失败: {}", e).into_boxed_str()) as &str
+                        }
+                    };
+                    (name.as_str(), status_text)
+                })
+                .collect();
 
-                let status_text = match status {
-                    ServerStatus::Connected => "已连接",
-                    ServerStatus::Connecting => "连接中",
-                    ServerStatus::Disconnected => "未连接",
-                    ServerStatus::Failed(e) => &format!("连接失败: {}", e),
-                };
-
-                message.push_str(&format!("{} **{}**: {}\n", status_icon, name, status_text));
-            }
-
-            send_html(&ctx.room, &message).await?;
+            let html = info_card("MCP 服务器状态", &items);
+            send_html(&ctx.room, &html).await?;
         } else {
             let html = error("MCP功能未启用");
             send_html(&ctx.room, &html).await?;
@@ -297,8 +296,13 @@ impl<T: crate::traits::AiServiceTrait> McpHandler<T> {
 
     /// 处理帮助信息
     async fn handle_help(&self, ctx: &CommandContext<'_>) -> anyhow::Result<()> {
-        let help = format!("📖 MCP管理命令帮助：\n\n{}", self.usage());
-        send_html(&ctx.room, &help).await
+        let items = vec![
+            ("!mcp list", "列出所有可用的 MCP 工具"),
+            ("!mcp servers", "查看 MCP 服务器连接状态"),
+            ("!mcp reload", "重载 MCP 配置（仅 Bot 所有者）"),
+        ];
+        let html = info_card("MCP 命令", &items);
+        send_html(&ctx.room, &html).await
     }
 }
 
