@@ -4,7 +4,8 @@
       "Bash(make check)",
       "Bash(make test)",
       "Bash(cargo check)",
-      "Bash(cargo clean)"
+      "Bash(cargo clean)",
+      "Bash(git commit --no-gpg-sign -m \"fix\\(persona\\): 设置人设时同步更新 Bot 显示名称\n\n在 handle_set 中添加更新 Bot 显示名称的逻辑，与 handle_off 中的行为保持一致。\n设置人设后会移除旧的人设后缀并添加新的，格式为 \"\"基础名称 \\(人设名称\\)\"\"。\")"
     ]
   }
 }
