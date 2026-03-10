@@ -1,0 +1,340 @@
+    Blocking waiting for file lock on artifact directory
+   Compiling aether-matrix v0.1.1 (/Users/xfy/Developer/aether)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 45.35s
+     Running unittests src/lib.rs (target/debug/deps/aether_matrix-ea69cb086e93813d)
+
+running 98 tests
+test command::parser::tests::test_is_command ... ok
+test ai_service::tests::test_streaming_state_new ... ok
+test ai_service::tests::test_streaming_state_multiple_appends ... ok
+test ai_service::tests::test_streaming_state_append ... ok
+test command::parser::tests::test_parse_no_prefix ... ok
+test command::parser::tests::test_parse_empty_after_prefix ... ok
+test command::parser::tests::test_parse_multiple_args ... ok
+test command::parser::tests::test_custom_prefix ... ok
+test command::parser::tests::test_parse_command_with_quoted_args ... ok
+test command::parser::tests::test_parse_single_quotes ... ok
+test command::parser::tests::test_parse_simple_command ... ok
+test command::parser::tests::test_parse_command_with_args ... ok
+test command::gateway::tests::test_gateway_creation ... ok
+test command::gateway::tests::test_gateway_prefix_update ... ok
+test command::parser::tests::test_tokenizer ... ok
+test command::permission::tests::test_permission_display_name ... ok
+test command::registry::tests::test_get_returns_none_for_unregistered ... ok
+test command::permission::tests::test_permission_ordering ... ok
+test command::registry::tests::test_new_registry_is_empty ... ok
+test command::registry::tests::test_register_overwrites_duplicate ... ok
+test command::registry::tests::test_register_adds_handler ... ok
+test command::registry::tests::test_commands_returns_all_names ... ok
+test command::registry::tests::test_get_returns_registered_handler ... ok
+test command::registry::tests::test_generate_help_includes_command_name ... ok
+test command::registry::tests::test_generate_help_includes_permission_when_not_anyone ... ok
+test command::registry::tests::test_generate_help_includes_description ... ok
+test command::registry::tests::test_generate_help_html_valid_html ... ok
+test config::tests::test_from_env_missing_username ... ok
+test config::tests::test_from_env_all_optional_fields ... ok
+test config::tests::test_from_env_missing_api_key ... ok
+test config::tests::test_from_env_system_prompt_optional ... ok
+test config::tests::test_from_env_device_id_optional ... ok
+test config::tests::test_from_env_boolean_parsing ... ok
+test config::tests::test_from_env_missing_homeserver ... ok
+test config::tests::test_from_env_missing_password ... ok
+test config::tests::test_from_env_number_parsing_valid ... ok
+test config::tests::test_from_env_number_parsing_invalid_uses_defaults ... ok
+test config::tests::test_from_env_uses_defaults_for_optional ... ok
+test conversation::tests::test_add_assistant_message ... ok
+test conversation::tests::test_add_user_message ... ok
+test conversation::tests::test_history_limit ... ok
+test conversation::tests::test_multiple_sessions ... ok
+test conversation::tests::test_new_manager_is_empty ... ok
+test conversation::tests::test_reset_conversation ... ok
+test conversation::tests::test_system_prompt ... ok
+test conversation::tests::test_multiple_tool_calls_in_one_message ... ok
+test conversation::tests::test_add_tool_call_message ... ok
+test conversation::tests::test_add_tool_result_message ... ok
+test config::tests::test_toml_minimal ... ok
+test config::tests::test_toml_parsing ... ok
+test mcp::builtin::web_fetch::tests::test_extract_text ... ok
+test mcp::builtin::web_fetch::tests::test_extract_text_removes_script ... ok
+test mcp::builtin::web_fetch::tests::test_params_deserialization ... ok
+test mcp::config::tests::test_default_config ... ok
+test mcp::config::tests::test_toml_parsing ... ok
+test mcp::config::tests::test_transport_type_deserialization ... ok
+test mcp::builtin::web_fetch::tests::test_tool_definition ... ok
+test mcp::config::tests::test_web_fetch_config_defaults ... ok
+test mcp::tool_registry::tests::test_tool_registry_creation ... ok
+test media::tests::test_encode_as_data_url ... ok
+test mcp::tool_registry::tests::test_tool_result_serialization ... ok
+test event_handler::tests::test_extract_message_plain_text ... ok
+test event_handler::tests::test_extract_message_with_prefix_and_mention ... ok
+test event_handler::tests::test_extract_message_with_mention ... ok
+test event_handler::tests::test_extract_message_empty_after_trim ... ok
+test event_handler::tests::test_extract_message_with_prefix ... ok
+test event_handler::tests::test_extract_message_with_prefix_and_spaces ... ok
+test media::tests::test_resize_image_if_needed_small_image ... ok
+test media::tests::test_resize_image_if_needed_preserves_aspect_ratio ... ok
+test store::persona_store::tests::test_create_persona_sets_is_builtin_false ... ok
+test store::persona_store::tests::test_create_persona_success ... ok
+test store::database::tests::test_new_creates_database_file ... ok
+test store::database::tests::test_new_runs_migrations ... ok
+test store::database::tests::test_clone_shares_connection ... ok
+test store::persona_store::tests::test_builtin_personas_have_valid_data ... ok
+test store::database::tests::test_conn_returns_arc_mutex ... ok
+test store::database::tests::test_new_creates_parent_directory ... ok
+test store::persona_store::tests::test_get_by_id_returns_none_for_nonexistent ... ok
+test store::persona_store::tests::test_get_all_returns_empty_when_no_personas ... ok
+test store::persona_store::tests::test_delete_persona_removes_custom_persona ... ok
+test store::persona_store::tests::test_delete_persona_fails_for_builtin ... ok
+test store::persona_store::tests::test_get_all_returns_builtin_first ... ok
+test traits::tests::test_append_adds_text ... ok
+test store::persona_store::tests::test_disable_room_persona_sets_enabled_false ... ok
+test traits::tests::test_content_returns_accumulated ... ok
+test traits::tests::test_multiple_appends ... ok
+test traits::tests::test_streaming_state_default_is_empty ... ok
+test traits::tests::test_streaming_state_new_creates_empty ... ok
+test ui::templates::tests::no_style_attributes ... ok
+test store::persona_store::tests::test_get_by_id_returns_persona ... ok
+test ui::templates::tests::uses_structural_tags ... ok
+test ui::templates::tests::status_uses_blockquote ... ok
+test traits::tests::test_chat_stream_response_type_works ... ok
+test store::persona_store::tests::test_get_room_persona_returns_set_persona ... ok
+test store::persona_store::tests::test_init_builtin_personas_creates_4_personas ... ok
+test store::persona_store::tests::test_init_builtin_personas_are_marked_as_builtin ... ok
+test store::persona_store::tests::test_init_builtin_personas_idempotent ... ok
+test store::persona_store::tests::test_set_room_persona_creates_association ... ok
+
+test result: ok. 98 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.09s
+
+     Running unittests src/main.rs (target/debug/deps/aether_matrix-fa25252ef82eef08)
+
+running 98 tests
+test ai_service::tests::test_streaming_state_new ... ok
+test command::parser::tests::test_is_command ... ok
+test ai_service::tests::test_streaming_state_append ... ok
+test ai_service::tests::test_streaming_state_multiple_appends ... ok
+test command::parser::tests::test_parse_command_with_args ... ok
+test command::parser::tests::test_custom_prefix ... ok
+test command::parser::tests::test_parse_command_with_quoted_args ... ok
+test command::parser::tests::test_parse_empty_after_prefix ... ok
+test command::parser::tests::test_parse_multiple_args ... ok
+test command::gateway::tests::test_gateway_prefix_update ... ok
+test command::gateway::tests::test_gateway_creation ... ok
+test command::parser::tests::test_parse_no_prefix ... ok
+test command::parser::tests::test_parse_simple_command ... ok
+test command::parser::tests::test_parse_single_quotes ... ok
+test command::parser::tests::test_tokenizer ... ok
+test command::permission::tests::test_permission_ordering ... ok
+test command::permission::tests::test_permission_display_name ... ok
+test command::registry::tests::test_commands_returns_all_names ... ok
+test command::registry::tests::test_generate_help_includes_description ... ok
+test command::registry::tests::test_generate_help_includes_command_name ... ok
+test command::registry::tests::test_generate_help_includes_permission_when_not_anyone ... ok
+test command::registry::tests::test_get_returns_none_for_unregistered ... ok
+test command::registry::tests::test_get_returns_registered_handler ... ok
+test command::registry::tests::test_new_registry_is_empty ... ok
+test command::registry::tests::test_generate_help_html_valid_html ... ok
+test command::registry::tests::test_register_adds_handler ... ok
+test command::registry::tests::test_register_overwrites_duplicate ... ok
+test config::tests::test_from_env_all_optional_fields ... ok
+test config::tests::test_from_env_device_id_optional ... ok
+test config::tests::test_from_env_boolean_parsing ... ok
+test config::tests::test_from_env_missing_api_key ... ok
+test config::tests::test_from_env_missing_homeserver ... ok
+test config::tests::test_from_env_missing_username ... ok
+test config::tests::test_from_env_missing_password ... ok
+test config::tests::test_from_env_number_parsing_invalid_uses_defaults ... ok
+test config::tests::test_from_env_number_parsing_valid ... ok
+test conversation::tests::test_add_assistant_message ... ok
+test config::tests::test_from_env_system_prompt_optional ... ok
+test config::tests::test_from_env_uses_defaults_for_optional ... ok
+test conversation::tests::test_add_tool_call_message ... ok
+test conversation::tests::test_add_user_message ... ok
+test conversation::tests::test_history_limit ... ok
+test conversation::tests::test_multiple_sessions ... ok
+test conversation::tests::test_add_tool_result_message ... ok
+test conversation::tests::test_new_manager_is_empty ... ok
+test conversation::tests::test_multiple_tool_calls_in_one_message ... ok
+test config::tests::test_toml_minimal ... ok
+test conversation::tests::test_reset_conversation ... ok
+test config::tests::test_toml_parsing ... ok
+test conversation::tests::test_system_prompt ... ok
+test event_handler::tests::test_extract_message_with_prefix_and_spaces ... ok
+test event_handler::tests::test_extract_message_plain_text ... ok
+test event_handler::tests::test_extract_message_with_mention ... ok
+test event_handler::tests::test_extract_message_with_prefix ... ok
+test event_handler::tests::test_extract_message_with_prefix_and_mention ... ok
+test event_handler::tests::test_extract_message_empty_after_trim ... ok
+test mcp::config::tests::test_default_config ... ok
+test mcp::builtin::web_fetch::tests::test_params_deserialization ... ok
+test mcp::builtin::web_fetch::tests::test_extract_text ... ok
+test mcp::builtin::web_fetch::tests::test_extract_text_removes_script ... ok
+test mcp::config::tests::test_transport_type_deserialization ... ok
+test mcp::config::tests::test_web_fetch_config_defaults ... ok
+test mcp::builtin::web_fetch::tests::test_tool_definition ... ok
+test mcp::config::tests::test_toml_parsing ... ok
+test mcp::tool_registry::tests::test_tool_registry_creation ... ok
+test media::tests::test_encode_as_data_url ... ok
+test mcp::tool_registry::tests::test_tool_result_serialization ... ok
+test media::tests::test_resize_image_if_needed_small_image ... ok
+test media::tests::test_resize_image_if_needed_preserves_aspect_ratio ... ok
+test store::persona_store::tests::test_create_persona_sets_is_builtin_false ... ok
+test store::persona_store::tests::test_create_persona_success ... ok
+test store::persona_store::tests::test_builtin_personas_have_valid_data ... ok
+test store::database::tests::test_clone_shares_connection ... ok
+test store::database::tests::test_conn_returns_arc_mutex ... ok
+test store::database::tests::test_new_runs_migrations ... ok
+test store::persona_store::tests::test_delete_persona_fails_for_builtin ... ok
+test store::persona_store::tests::test_delete_persona_removes_custom_persona ... ok
+test store::database::tests::test_new_creates_database_file ... ok
+test store::database::tests::test_new_creates_parent_directory ... ok
+test store::persona_store::tests::test_get_all_returns_empty_when_no_personas ... ok
+test store::persona_store::tests::test_disable_room_persona_sets_enabled_false ... ok
+test store::persona_store::tests::test_get_by_id_returns_none_for_nonexistent ... ok
+test traits::tests::test_append_adds_text ... ok
+test traits::tests::test_chat_stream_response_type_works ... ok
+test traits::tests::test_content_returns_accumulated ... ok
+test traits::tests::test_multiple_appends ... ok
+test traits::tests::test_streaming_state_default_is_empty ... ok
+test traits::tests::test_streaming_state_new_creates_empty ... ok
+test ui::templates::tests::no_style_attributes ... ok
+test ui::templates::tests::status_uses_blockquote ... ok
+test ui::templates::tests::uses_structural_tags ... ok
+test store::persona_store::tests::test_get_by_id_returns_persona ... ok
+test store::persona_store::tests::test_get_all_returns_builtin_first ... ok
+test store::persona_store::tests::test_get_room_persona_returns_set_persona ... ok
+test store::persona_store::tests::test_init_builtin_personas_are_marked_as_builtin ... ok
+test store::persona_store::tests::test_init_builtin_personas_creates_4_personas ... ok
+test store::persona_store::tests::test_init_builtin_personas_idempotent ... ok
+test store::persona_store::tests::test_set_room_persona_creates_association ... ok
+
+test result: ok. 98 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
+
+     Running tests/ai_service_integration.rs (target/debug/deps/ai_service_integration-3304d03fa322e2b0)
+
+running 8 tests
+test conversation_tests::test_reset_conversation ... ok
+test chat_tests::test_chat_success ... ok
+test conversation_tests::test_session_isolation ... ok
+test conversation_tests::test_multiple_messages_in_session ... ok
+test trait_tests::test_trait_chat_delegates_correctly ... ok
+test chat_tests::test_chat_empty_response ... ok
+test vision_tests::test_chat_with_image ... ok
+test trait_tests::test_trait_reset_delegates_correctly ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/bot_integration.rs (target/debug/deps/bot_integration-f9783a32b16a686b)
+
+running 5 tests
+test config_tests::test_config_custom_values ... ok
+test config_tests::test_config_default_values ... ok
+test config_tests::test_config_can_be_cloned ... ok
+test config_tests::test_config_debug_impl ... ok
+test bot_tests::test_bot_new_with_invalid_homeserver ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running tests/event_handler_integration.rs (target/debug/deps/event_handler_integration-12d73088ea49eb7e)
+
+running 8 tests
+test config_tests::test_config_defaults ... ok
+test mock_ai_service_tests::test_mock_ai_chat_with_image ... ok
+test mock_ai_service_tests::test_mock_ai_chat_without_response ... ok
+test mock_ai_service_tests::test_mock_ai_reset ... ok
+test mock_ai_service_tests::test_mock_ai_multiple_sessions ... ok
+test mock_ai_service_tests::test_mock_ai_chat_stream_returns_error ... ok
+test mock_ai_service_tests::test_mock_ai_chat_with_image_stream_returns_error ... ok
+test mock_ai_service_tests::test_mock_ai_chat_with_response ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests aether_matrix
+
+running 83 tests
+test src/ai_service.rs - ai_service (line 27) - compile ... ok
+test src/command/context.rs - command::context::CommandContext<'a>::new (line 75) ... ignored
+test src/command/context.rs - command::context::CommandContext<'a>::sub_args (line 132) ... ignored
+test src/command/context.rs - command::context::CommandContext<'a>::sub_command (line 113) ... ignored
+test src/command/context.rs - command::context::CommandContextArgs (line 14) ... ignored
+test src/bot.rs - bot::Bot (line 58) - compile ... ok
+test src/command/gateway.rs - command::gateway::CommandGateway (line 32) ... ignored
+test src/ai_service.rs - ai_service::AiService (line 74) - compile ... ok
+test src/command/gateway.rs - command::gateway::CommandGateway::new (line 63) ... ignored
+test src/bot.rs - bot (line 25) - compile ... ok
+test src/command/parser.rs - command::parser::ParsedCommand (line 11) ... ignored
+test src/command/mod.rs - command (line 30) - compile ... ok
+test src/command/parser.rs - command::parser::Parser::tokenize (line 179) ... ignored
+test src/command/permission.rs - command::permission::Permission (line 19) ... ignored
+test src/command/permission.rs - command::permission::Permission::check (line 61) ... ignored
+test src/command/registry.rs - command::registry::CommandHandler (line 33) ... ignored
+test src/command/registry.rs - command::registry::CommandRegistry (line 103) ... ignored
+test src/config.rs - config (line 29) - compile ... ok
+test src/config.rs - config::Config (line 60) - compile ... ok
+test src/config.rs - config::Config::load (line 383) - compile ... ok
+test src/command/parser.rs - command::parser::Parser::new (line 72) ... ok
+test src/command/parser.rs - command::parser::Parser::parse (line 113) ... ok
+test src/conversation.rs - conversation (line 30) ... ok
+test src/command/parser.rs - command::parser::Parser::is_command (line 243) ... ok
+test src/command/parser.rs - command::parser::Parser (line 39) ... ok
+test src/command/permission.rs - command::permission::Permission::display_name (line 98) ... ok
+test src/conversation.rs - conversation::ConversationManager (line 70) ... ok
+test src/conversation.rs - conversation::ConversationManager::add_assistant_message (line 237) ... ok
+test src/conversation.rs - conversation::ConversationManager::add_user_message (line 138) ... ok
+test src/conversation.rs - conversation::ConversationManager::add_user_message_with_image (line 177) ... ok
+test src/modules/admin/handlers.rs - modules::admin::handlers::BotInfoHandler (line 29) ... ignored
+test src/conversation.rs - conversation::ConversationManager::get_messages (line 271) ... ok
+test src/conversation.rs - conversation::ConversationManager::new (line 106) ... ok
+test src/event_handler.rs - event_handler::EventHandler (line 110) ... ok
+test src/event_handler.rs - event_handler::handle_invite (line 62) ... ok
+test src/media.rs - media::download_image_as_base64 (line 40) ... ok
+test src/modules/admin/handlers.rs - modules::admin::handlers::BotLeaveHandler (line 406) ... ignored
+test src/media.rs - media::encode_as_data_url (line 161) ... ok
+test src/modules/admin/handlers.rs - modules::admin::handlers::BotInfoHandler::name (line 68) ... ok
+test src/modules/admin/handlers.rs - modules::admin::handlers::BotInfoHandler::description (line 83) ... ok
+test src/modules/admin/handlers.rs - modules::admin::handlers::BotInfoHandler::permission (line 115) ... ok
+test src/modules/admin/handlers.rs - modules::admin::handlers::BotPingHandler (line 536) ... ignored
+test src/modules/admin/handlers.rs - modules::admin::handlers::BotInfoHandler::usage (line 98) ... ok
+test src/media.rs - media::resize_image_if_needed (line 99) ... ok
+test src/modules/admin/handlers.rs - modules::admin::handlers::BotLeaveHandler::name (line 445) ... ok
+test src/modules/mcp/handlers.rs - modules::mcp::handlers::McpHandler (line 35) ... ignored
+test src/modules/mcp/handlers.rs - modules::mcp::handlers::McpHandler<T>::description (line 120) ... ignored
+test src/modules/mcp/handlers.rs - modules::mcp::handlers::McpHandler<T>::name (line 102) ... ignored
+test src/modules/mcp/handlers.rs - modules::mcp::handlers::McpHandler<T>::permission (line 159) ... ignored
+test src/modules/mcp/handlers.rs - modules::mcp::handlers::McpHandler<T>::usage (line 137) ... ignored
+test src/modules/persona/handlers.rs - modules::persona::handlers::PersonaHandler (line 30) ... ignored
+test src/modules/persona/handlers.rs - modules::persona::handlers::PersonaHandler::description (line 105) ... ignored
+test src/modules/persona/handlers.rs - modules::persona::handlers::PersonaHandler::name (line 87) ... ignored
+test src/modules/persona/handlers.rs - modules::persona::handlers::PersonaHandler::permission (line 140) ... ignored
+test src/modules/persona/handlers.rs - modules::persona::handlers::PersonaHandler::usage (line 122) ... ignored
+test src/store/database.rs - store::database::Database (line 32) - compile ... ok
+test src/modules/admin/handlers.rs - modules::admin::handlers::BotLeaveHandler::permission (line 490) ... ok
+test src/store/database.rs - store::database::Database::conn (line 143) - compile ... ok
+test src/modules/admin/handlers.rs - modules::admin::handlers::BotPingHandler::description (line 590) ... ok
+test src/store/persona_store.rs - store::persona_store::Persona::system_prompt (line 76) ... ignored
+test src/store/database.rs - store::database::Database::new (line 83) - compile ... ok
+test src/store/persona_store.rs - store::persona_store::Persona (line 31) - compile ... ok
+test src/store/persona_store.rs - store::persona_store::PersonaStore (line 129) - compile ... ok
+test src/store/persona_store.rs - store::persona_store::PersonaStore::create_persona (line 537) - compile ... ok
+test src/store/persona_store.rs - store::persona_store::PersonaStore::delete_persona (line 585) - compile ... ok
+test src/store/persona_store.rs - store::persona_store::PersonaStore::disable_room_persona (line 501) - compile ... ok
+test src/store/persona_store.rs - store::persona_store::PersonaStore::get_all (line 287) - compile ... ok
+test src/store/persona_store.rs - store::persona_store::PersonaStore::get_by_id (line 344) - compile ... ok
+test src/store/persona_store.rs - store::persona_store::PersonaStore::get_room_persona (line 445) - compile ... ok
+test src/store/persona_store.rs - store::persona_store::PersonaStore::init_builtin_personas (line 186) - compile ... ok
+test src/store/persona_store.rs - store::persona_store::PersonaStore::new (line 162) - compile ... ok
+test src/store/persona_store.rs - store::persona_store::PersonaStore::set_room_persona (line 397) - compile ... ok
+test src/traits.rs - traits (line 20) - compile ... ok
+test src/traits.rs - traits::AiServiceTrait (line 153) - compile ... ok
+test src/traits.rs - traits::ChatStreamResponse (line 109) - compile ... ok
+test src/modules/admin/handlers.rs - modules::admin::handlers::BotLeaveHandler::description (line 460) ... ok
+test src/modules/admin/handlers.rs - modules::admin::handlers::BotLeaveHandler::usage (line 475) ... ok
+test src/modules/admin/handlers.rs - modules::admin::handlers::BotPingHandler::name (line 575) ... ok
+test src/modules/admin/handlers.rs - modules::admin::handlers::BotPingHandler::permission (line 620) ... ok
+test src/modules/admin/handlers.rs - modules::admin::handlers::BotPingHandler::usage (line 605) ... ok
+test src/traits.rs - traits::StreamingState::append (line 69) ... ok
+test src/traits.rs - traits::StreamingState::new (line 51) ... ok
+test src/traits.rs - traits::StreamingState::content (line 89) ... ok
+
+test result: ok. 57 passed; 0 failed; 26 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+all doctests ran in 8.64s; merged doctests compilation took 6.15s

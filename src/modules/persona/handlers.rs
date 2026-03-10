@@ -8,13 +8,69 @@ use crate::command::{CommandContext, CommandHandler, Permission};
 use crate::store::{Persona, PersonaStore};
 use crate::ui::{error, info_card, success, warning};
 
-/// Persona 命令处理器
+/// Persona 命令处理器。
+///
+/// 管理 AI 人设的创建、查看、设置和删除。支持以下子命令：
+///
+/// - `list` - 列出所有可用的人设
+/// - `info <id>` - 查看指定人设的详细信息
+/// - `set <id>` - 为当前房间设置人设（需要房间管理员权限）
+/// - `off` - 关闭当前房间的人设（需要房间管理员权限）
+/// - `create <id> "名称" "提示词"` - 创建自定义人设（需要房间管理员权限）
+/// - `delete <id>` - 删除自定义人设（需要房间管理员权限）
+///
+/// # 权限
+///
+/// 基础命令（list、info）任何房间成员都可以执行。
+/// 管理命令（set、off、create、delete）需要房间管理员权限，
+/// 私聊房间默认拥有管理员权限。
+///
+/// # Example
+///
+/// ```ignore
+/// use aether_matrix::command::{CommandHandler, CommandContext, Permission};
+/// use aether_matrix::store::PersonaStore;
+/// use async_trait::async_trait;
+///
+/// /// Persona 命令处理器。
+/// pub struct PersonaHandler {
+///     store: PersonaStore,
+/// }
+///
+/// #[async_trait]
+/// impl CommandHandler for PersonaHandler {
+///     fn name(&self) -> &str {
+///         "persona"
+///     }
+///
+///     fn description(&self) -> &str {
+///         "人设管理命令"
+///     }
+///
+///     fn usage(&self) -> &str {
+///         "persona <set|list|off|info|create|delete>"
+///     }
+///
+///     fn permission(&self) -> Permission {
+///         Permission::Anyone
+///     }
+///
+///     async fn execute(&self, ctx: &CommandContext<'_>) -> anyhow::Result<()> {
+///         // 路由到对应子命令处理器
+///         Ok(())
+///     }
+/// }
+/// ```
 pub struct PersonaHandler {
     store: PersonaStore,
 }
 
 impl PersonaHandler {
-    /// 创建新的 Persona 命令处理器
+    /// 创建新的 Persona 命令处理器。
+    ///
+    /// # Arguments
+    ///
+    /// * `store` - 人设存储实例，用于管理内置和自定义人设
     pub fn new(store: PersonaStore) -> Self {
         Self { store }
     }
@@ -22,22 +78,93 @@ impl PersonaHandler {
 
 #[async_trait]
 impl CommandHandler for PersonaHandler {
+    /// 命令名称（不含前缀）。
+    ///
+    /// 例如命令 `!persona list` 的 name 为 `"persona"`。
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// use aether_matrix::modules::persona::PersonaHandler;
+    /// use aether_matrix::command::CommandHandler;
+    ///
+    /// // 需要 PersonaStore 实例
+    /// let handler = PersonaHandler::new(store);
+    /// assert_eq!(handler.name(), "persona");
+    /// ```
     fn name(&self) -> &str {
         "persona"
     }
 
+    /// 命令描述。
+    ///
+    /// 用于帮助信息，简要说明命令功能。
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// use aether_matrix::modules::persona::PersonaHandler;
+    /// use aether_matrix::command::CommandHandler;
+    ///
+    /// let handler = PersonaHandler::new(store);
+    /// assert!(!handler.description().is_empty());
+    /// ```
     fn description(&self) -> &str {
         "人设管理命令"
     }
 
+    /// 使用说明。
+    ///
+    /// 用于帮助信息，说明命令的参数和用法。
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// use aether_matrix::modules::persona::PersonaHandler;
+    /// use aether_matrix::command::CommandHandler;
+    ///
+    /// let handler = PersonaHandler::new(store);
+    /// assert!(handler.usage().contains("set"));
+    /// ```
     fn usage(&self) -> &str {
         "persona <set|list|off|info|create|delete>"
     }
 
+    /// 所需权限级别。
+    ///
+    /// 默认为 `Anyone`，任何房间成员都可执行基础命令。
+    /// 管理子命令在运行时检查权限。
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// use aether_matrix::modules::persona::PersonaHandler;
+    /// use aether_matrix::command::{CommandHandler, Permission};
+    ///
+    /// let handler = PersonaHandler::new(store);
+    /// assert_eq!(handler.permission(), Permission::Anyone);
+    /// ```
     fn permission(&self) -> Permission {
         Permission::Anyone
     }
 
+    /// 执行命令。
+    ///
+    /// 根据子命令路由到对应的处理器：
+    /// - `list` → 列出所有人设
+    /// - `set <id>` → 设置房间人设
+    /// - `off` → 关闭房间人设
+    /// - `info <id>` → 查看人设详情
+    /// - `create <id> "名称" "提示词"` → 创建自定义人设
+    /// - `delete <id>` → 删除自定义人设
+    ///
+    /// # Arguments
+    ///
+    /// * `ctx` - 命令执行上下文，包含客户端、房间、发送者等信息
+    ///
+    /// # Returns
+    ///
+    /// 成功时返回 `Ok(())`，失败时返回错误。
     async fn execute(&self, ctx: &CommandContext<'_>) -> Result<()> {
         let sub = ctx.sub_command();
 

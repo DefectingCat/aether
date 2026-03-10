@@ -1,0 +1,42 @@
+Task 11: Data Structure Doctests Verification
+Date: 2026-03-10
+===============================================
+
+1. DOCTEST RESULTS
+------------------
+Command: cargo test --doc
+Result: ok. 57 passed; 0 failed; 26 ignored; 0 measured; 0 filtered out
+
+All doctests in persona_store.rs and database.rs pass:
+- src/store/persona_store.rs - Persona struct doc
+- src/store/persona_store.rs - Persona::system_prompt doc (ignored)
+- src/store/persona_store.rs - PersonaStore struct doc
+- src/store/persona_store.rs - PersonaStore::new doc
+- src/store/persona_store.rs - PersonaStore::init_builtin_personas doc
+- src/store/persona_store.rs - PersonaStore::get_all doc
+- src/store/persona_store.rs - PersonaStore::get_by_id doc
+- src/store/persona_store.rs - PersonaStore::set_room_persona doc
+- src/store/persona_store.rs - PersonaStore::get_room_persona doc
+- src/store/persona_store.rs - PersonaStore::disable_room_persona doc
+- src/store/persona_store.rs - PersonaStore::create_persona doc
+- src/store/persona_store.rs - PersonaStore::delete_persona doc
+- src/store/database.rs - Database struct doc
+- src/store/database.rs - Database::new doc
+- src/store/database.rs - Database::conn doc
+
+2. DOC BUILD RESULTS
+--------------------
+Command: cargo doc --no-deps
+Result: Finished dev profile [unoptimized + debuginfo] target(s) in 2.40s
+Generated: /Users/xfy/Developer/aether/target/doc/aether_matrix/index.html
+
+Warnings (2 pre-existing, not data structure related):
+- src/ai_service.rs:8 - links to private item AiServiceInner
+- src/command/context.rs:71 - links to private item CommandContextArgs
+
+3. CONCLUSION
+-------------
+✓ All data structure documentation includes appropriate doctests
+✓ cargo test --doc passes without failures
+✓ cargo doc --no-deps compiles without new warnings
+✓ Task 11 completed successfully

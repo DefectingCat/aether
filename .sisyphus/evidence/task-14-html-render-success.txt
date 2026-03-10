@@ -1,0 +1,31 @@
+HTML Documentation Generation - Success
+
+Command: cargo doc --no-deps
+Date: Tue Mar 10 2026
+Status: SUCCESS
+
+Output:
+ Documenting aether-matrix v0.1.1 (/Users/xfy/Developer/aether)
+warning: public documentation for `ai_service` links to private item `AiServiceInner`
+ --> src/ai_service.rs:8:9
+  |
+8 | //! - [`AiServiceInner`]: 内部实现，使用 `Arc` 包装支持共享
+  |         ^^^^^^^^^^^^^^ this item is private
+  |
+  = note: this link will resolve properly if you pass `--document-private-items`
+  = note: `#[warn(rustdoc::private_intra_doc_links)]` on by default
+
+warning: public documentation for `new` links to private item `CommandContextArgs`
+  --> src/command/context.rs:71:30
+   |
+71 |     /// * `args` - 构建参数，详见 [`CommandContextArgs`]
+   |                                     ^^^^^^^^^^^^^^^^^^ this item is private
+   |
+   = note: this link will resolve properly if you pass `--document-private-items`
+
+warning: `aether-matrix` (lib doc) generated 2 warnings
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 2.17s
+   Generated /Users/xfy/Developer/aether/target/doc/aether_matrix/index.html
+
+Warnings: 2 (non-blocking - links to private items)
+Generated: /Users/xfy/Developer/aether/target/doc/aether_matrix/index.html

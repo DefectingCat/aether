@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 
 /// 功德记录
 #[derive(Debug, Clone, Default)]
+#[allow(dead_code)]
 pub struct MeritRecord {
     /// 用户 ID
     pub user_id: String,
@@ -150,6 +151,7 @@ impl Rarity {
 
 /// 掉落物品
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct DropItem {
     /// 物品 ID（预留：物品使用/交易功能）
     #[allow(dead_code)]
@@ -205,6 +207,7 @@ pub struct HitResult {
 
 /// 用户称号（带装备状态）
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct UserTitle {
     /// 称号信息
     pub title: Title,

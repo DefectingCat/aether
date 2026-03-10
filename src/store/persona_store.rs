@@ -1,40 +1,198 @@
-//! Persona 人设存储
+//! Persona 人设存储模块。
+//!
+//! 提供人设（Persona）的定义、存储和管理功能。人设用于自定义 AI 助手的
+//! 响应风格和系统提示词，每个 Matrix 房间可以设置独立的人设。
 
 use anyhow::Result;
-use rusqlite::{Connection, params};
+use rusqlite::{params, Connection};
 use serde::{Deserialize, Serialize};
 use std::sync::{Arc, Mutex};
 
-/// 人设定义
+/// 人设定义，包含 AI 助手的性格和行为配置。
+///
+/// 人设用于自定义 AI 的响应风格和系统提示词。
+/// 每个房间可以设置独立的人设，影响该房间的对话体验。
+///
+/// # 内置人设
+///
+/// 项目预置了 4 个内置人设：
+/// - `sarcastic-dev`: 毒舌程序员，20年经验，对低质量代码愤怒
+/// - `cyber-zen`: 赛博禅师，用 TCP/IP 诠释佛法，简短深邃
+/// - `wiki-chan`: 维基百科娘，知识渊博、严谨客观、标注来源
+/// - `neko-chan`: 猫娘助手，语气活泼可爱，句末加「喵~」
+///
+/// # 自定义人设
+///
+/// 用户可以通过 `!persona create` 命令创建自定义人设，
+/// 自定义人设存储在数据库中，可以被删除。
+///
+/// # Example
+///
+/// ```no_run
+/// use aether_matrix::store::Persona;
+///
+/// // 创建自定义人设
+/// let persona = Persona {
+///     id: "my-assistant".to_string(),
+///     name: "我的助手".to_string(),
+///     system_prompt: "你是一个专业的 Rust 开发顾问...".to_string(),
+///     avatar_emoji: Some("🦀".to_string()),
+///     is_builtin: false,
+///     created_by: Some("@user:matrix.org".to_string()),
+/// };
+/// ```
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Persona {
-    /// 人设 ID
+    /// 人设唯一标识符。
+    ///
+    /// 用于在命令中引用人设，如 `!persona set sarcastic-dev`。
+    /// 内置人设使用连字符分隔的小写字母，如 `sarcastic-dev`。
+    /// 自定义人设建议使用相同的命名风格。
+    ///
+    /// # Example
+    ///
+    /// - `sarcastic-dev` - 内置人设
+    /// - `my-custom-assistant` - 自定义人设
     pub id: String,
-    /// 显示名称
+
+    /// 人设显示名称。
+    ///
+    /// 在人设列表和状态中显示的友好名称。
+    ///
+    /// # Example
+    ///
+    /// - `"毒舌程序员"`
+    /// - `"赛博禅师"`
+    /// - `"我的助手"`
     pub name: String,
-    /// 系统提示词
+
+    /// 系统提示词。
+    ///
+    /// 发送给 AI 模型的系统提示，定义 AI 的行为和响应风格。
+    /// 应该详细描述人设的性格、语气和专业领域。
+    ///
+    /// # Example
+    ///
+    /// ```ignore
+    /// "你是一个有20年经验的老程序员。你对低质量代码感到愤怒..."
+    /// ```
     pub system_prompt: String,
-    /// 头像 emoji
+
+    /// 头像 Emoji（可选）。
+    ///
+    /// 用于在人设列表中显示的可选表情符号。
+    ///
+    /// # Example
+    ///
+    /// - `Some("💻".to_string())` - 毒舌程序员
+    /// - `Some("🐱".to_string())` - 猫娘助手
+    /// - `None` - 无头像
     pub avatar_emoji: Option<String>,
-    /// 是否内置
+
+    /// 是否为内置人设。
+    ///
+    /// 内置人设由系统预置，不可删除。
+    /// 自定义人设由用户创建，可以删除。
     pub is_builtin: bool,
-    /// 创建者
+
+    /// 创建者用户 ID（可选）。
+    ///
+    /// 对于内置人设，此值为 `None`。
+    /// 对于自定义人设，记录创建者的 Matrix 用户 ID。
+    ///
+    /// # Example
+    ///
+    /// - `None` - 内置人设
+    /// - `Some("@user:matrix.org".to_string())` - 自定义人设
     pub created_by: Option<String>,
 }
 
-/// 人设存储
+/// 人设存储，管理内置和自定义人设的持久化。
+///
+/// 提供人设的 CRUD 操作，以及房间与人设的关联管理。
+/// 内部使用 SQLite 数据库存储，通过 `Arc<Mutex<Connection>>` 实现线程安全。
+///
+/// # 内置人设
+///
+/// 系统预置 4 个内置人设，通过 [`PersonaStore::init_builtin_personas`] 初始化。
+/// 内置人设不可删除，但可以通过 `!persona set` 命令应用到房间。
+///
+/// # 房间人设
+///
+/// 每个房间可以设置一个激活的人设：
+/// - [`PersonaStore::set_room_persona`] - 设置房间人设
+/// - [`PersonaStore::get_room_persona`] - 获取房间当前人设
+/// - [`PersonaStore::disable_room_persona`] - 关闭房间人设
+///
+/// # Example
+///
+/// ```no_run
+/// use std::sync::{Arc, Mutex};
+/// use rusqlite::Connection;
+/// use aether_matrix::store::PersonaStore;
+///
+/// // 创建数据库连接
+/// let conn = Connection::open("./data/aether.db")?;
+/// let store = PersonaStore::new(Arc::new(Mutex::new(conn)));
+///
+/// // 初始化内置人设
+/// store.init_builtin_personas()?;
+///
+/// // 获取所有人设
+/// let personas = store.get_all()?;
+/// for persona in personas {
+///     println!("{}: {}", persona.id, persona.name);
+/// }
+/// # Ok::<(), anyhow::Error>(())
+/// ```
 #[derive(Clone)]
 pub struct PersonaStore {
     conn: Arc<Mutex<Connection>>,
 }
 
 impl PersonaStore {
-    /// 创建新的人设存储
+    /// 创建新的人设存储实例。
+    ///
+    /// # Arguments
+    ///
+    /// * `conn` - SQLite 数据库连接，包装在 `Arc<Mutex<>>` 中以实现线程安全
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use std::sync::{Arc, Mutex};
+    /// use rusqlite::Connection;
+    /// use aether_matrix::store::PersonaStore;
+    ///
+    /// let conn = Connection::open("./data/aether.db")?;
+    /// let store = PersonaStore::new(Arc::new(Mutex::new(conn)));
+    /// # Ok::<(), anyhow::Error>(())
+    /// ```
     pub fn new(conn: Arc<Mutex<Connection>>) -> Self {
         Self { conn }
     }
 
-    /// 初始化内置人设
+    /// 初始化内置人设。
+    ///
+    /// 将 4 个预置人设插入数据库。使用 UPSERT 语义，
+    /// 如果人设已存在则更新，保证幂等性。
+    ///
+    /// # Errors
+    ///
+    /// 当数据库操作失败时返回错误。
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use aether_matrix::store::PersonaStore;
+    /// # use std::sync::{Arc, Mutex};
+    /// # use rusqlite::Connection;
+    /// # let conn = Connection::open(":memory:")?;
+    /// # let store = PersonaStore::new(Arc::new(Mutex::new(conn)));
+    ///
+    /// store.init_builtin_personas()?;
+    /// # Ok::<(), anyhow::Error>(())
+    /// ```
     pub fn init_builtin_personas(&self) -> Result<()> {
         let builtin_personas = Self::builtin_personas();
         let conn = self.conn.lock().unwrap();
@@ -112,7 +270,33 @@ impl PersonaStore {
         ]
     }
 
-    /// 获取所有人设
+    /// 获取所有人设列表。
+    ///
+    /// 返回所有内置和自定义人设，按内置优先、名称升序排列。
+    ///
+    /// # Returns
+    ///
+    /// 成功时返回人设列表。如果没有数据，返回空列表。
+    ///
+    /// # Errors
+    ///
+    /// 当数据库查询失败时返回错误。
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// # use aether_matrix::store::PersonaStore;
+    /// # use std::sync::{Arc, Mutex};
+    /// # use rusqlite::Connection;
+    /// # let conn = Connection::open(":memory:")?;
+    /// # let store = PersonaStore::new(Arc::new(Mutex::new(conn)));
+    /// # store.init_builtin_personas()?;
+    /// let personas = store.get_all()?;
+    /// for persona in personas {
+    ///     println!("{}: {} {}", persona.id, persona.avatar_emoji.unwrap_or_default(), persona.name);
+    /// }
+    /// # Ok::<(), anyhow::Error>(())
+    /// ```
     pub fn get_all(&self) -> Result<Vec<Persona>> {
         let conn = self.conn.lock().unwrap();
         let mut stmt = conn.prepare(
@@ -138,7 +322,37 @@ impl PersonaStore {
         Ok(personas)
     }
 
-    /// 根据 ID 获取人设
+    /// 根据 ID 获取人设。
+    ///
+    /// 查询数据库中指定 ID 的人设记录。
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - 人设唯一标识符
+    ///
+    /// # Returns
+    ///
+    /// - `Some(Persona)` - 找到匹配的人设
+    /// - `None` - 未找到匹配的人设
+    ///
+    /// # Errors
+    ///
+    /// 当数据库查询失败时返回错误。
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// # use aether_matrix::store::PersonaStore;
+    /// # use std::sync::{Arc, Mutex};
+    /// # use rusqlite::Connection;
+    /// # let conn = Connection::open(":memory:")?;
+    /// # let store = PersonaStore::new(Arc::new(Mutex::new(conn)));
+    /// # store.init_builtin_personas()?;
+    /// if let Some(persona) = store.get_by_id("sarcastic-dev")? {
+    ///     println!("找到人设: {}", persona.name);
+    /// }
+    /// # Ok::<(), anyhow::Error>(())
+    /// ```
     pub fn get_by_id(&self, id: &str) -> Result<Option<Persona>> {
         let conn = self.conn.lock().unwrap();
         let mut stmt = conn.prepare(
@@ -163,7 +377,33 @@ impl PersonaStore {
         }
     }
 
-    /// 设置房间人设
+    /// 设置房间人设。
+    ///
+    /// 将指定人设绑定到房间，影响该房间的 AI 响应风格。
+    /// 如果房间已有设置的人设，将更新为新人设。
+    ///
+    /// # Arguments
+    ///
+    /// * `room_id` - Matrix 房间 ID，如 `!room:matrix.org`
+    /// * `persona_id` - 人设唯一标识符
+    /// * `set_by` - 执行设置的用户 Matrix ID
+    ///
+    /// # Errors
+    ///
+    /// 当数据库操作失败时返回错误。
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// # use aether_matrix::store::PersonaStore;
+    /// # use std::sync::{Arc, Mutex};
+    /// # use rusqlite::Connection;
+    /// # let conn = Connection::open(":memory:")?;
+    /// # let store = PersonaStore::new(Arc::new(Mutex::new(conn)));
+    /// # store.init_builtin_personas()?;
+    /// store.set_room_persona("!room:matrix.org", "sarcastic-dev", "@user:matrix.org")?;
+    /// # Ok::<(), anyhow::Error>(())
+    /// ```
     pub fn set_room_persona(&self, room_id: &str, persona_id: &str, set_by: &str) -> Result<()> {
         let conn = self.conn.lock().unwrap();
         conn.execute(
@@ -183,7 +423,38 @@ impl PersonaStore {
         Ok(())
     }
 
-    /// 获取房间当前人设
+    /// 获取房间当前激活的人设。
+    ///
+    /// 查询房间设置的人设，仅返回已启用的人设。
+    ///
+    /// # Arguments
+    ///
+    /// * `room_id` - Matrix 房间 ID
+    ///
+    /// # Returns
+    ///
+    /// - `Some(Persona)` - 房间已设置且启用了人设
+    /// - `None` - 房间未设置人设或人设已禁用
+    ///
+    /// # Errors
+    ///
+    /// 当数据库查询失败时返回错误。
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// # use aether_matrix::store::PersonaStore;
+    /// # use std::sync::{Arc, Mutex};
+    /// # use rusqlite::Connection;
+    /// # let conn = Connection::open(":memory:")?;
+    /// # let store = PersonaStore::new(Arc::new(Mutex::new(conn)));
+    /// # store.init_builtin_personas()?;
+    /// # store.set_room_persona("!room:matrix.org", "sarcastic-dev", "@user:matrix.org")?;
+    /// if let Some(persona) = store.get_room_persona("!room:matrix.org")? {
+    ///     println!("房间人设: {}", persona.name);
+    /// }
+    /// # Ok::<(), anyhow::Error>(())
+    /// ```
     pub fn get_room_persona(&self, room_id: &str) -> Result<Option<Persona>> {
         let conn = self.conn.lock().unwrap();
         let mut stmt = conn.prepare(
@@ -213,7 +484,29 @@ impl PersonaStore {
         }
     }
 
-    /// 关闭房间人设
+    /// 关闭房间人设。
+    ///
+    /// 将房间的人设设置为禁用状态，不再影响 AI 响应。
+    ///
+    /// # Arguments
+    ///
+    /// * `room_id` - Matrix 房间 ID
+    ///
+    /// # Errors
+    ///
+    /// 当数据库操作失败时返回错误。
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// # use aether_matrix::store::PersonaStore;
+    /// # use std::sync::{Arc, Mutex};
+    /// # use rusqlite::Connection;
+    /// # let conn = Connection::open(":memory:")?;
+    /// # let store = PersonaStore::new(Arc::new(Mutex::new(conn)));
+    /// store.disable_room_persona("!room:matrix.org")?;
+    /// # Ok::<(), anyhow::Error>(())
+    /// ```
     pub fn disable_room_persona(&self, room_id: &str) -> Result<()> {
         let conn = self.conn.lock().unwrap();
         conn.execute(
@@ -225,7 +518,40 @@ impl PersonaStore {
         Ok(())
     }
 
-    /// 创建自定义人设
+    /// 创建自定义人设。
+    ///
+    /// 将新的人设插入数据库。注意 `is_builtin` 字段会被强制设为 `false`。
+    ///
+    /// # Arguments
+    ///
+    /// * `persona` - 要创建的人设数据
+    ///
+    /// # Errors
+    ///
+    /// 当以下情况发生时返回错误：
+    /// - 人设 ID 已存在
+    /// - 数据库操作失败
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// use aether_matrix::store::{Persona, PersonaStore};
+    /// # use std::sync::{Arc, Mutex};
+    /// # use rusqlite::Connection;
+    /// # let conn = Connection::open(":memory:")?;
+    /// # let store = PersonaStore::new(Arc::new(Mutex::new(conn)));
+    ///
+    /// let persona = Persona {
+    ///     id: "my-assistant".to_string(),
+    ///     name: "我的助手".to_string(),
+    ///     system_prompt: "你是一个专业的 Rust 开发顾问...".to_string(),
+    ///     avatar_emoji: Some("🦀".to_string()),
+    ///     is_builtin: false,
+    ///     created_by: Some("@user:matrix.org".to_string()),
+    /// };
+    /// store.create_persona(&persona)?;
+    /// # Ok::<(), anyhow::Error>(())
+    /// ```
     pub fn create_persona(&self, persona: &Persona) -> Result<()> {
         let conn = self.conn.lock().unwrap();
         conn.execute(
@@ -237,6 +563,39 @@ impl PersonaStore {
         Ok(())
     }
 
+    /// 删除自定义人设。
+    ///
+    /// 仅能删除自定义人设，内置人设不可删除。
+    ///
+    /// # Arguments
+    ///
+    /// * `id` - 要删除的人设 ID
+    ///
+    /// # Returns
+    ///
+    /// - `true` - 成功删除人设
+    /// - `false` - 人设不存在或是内置人设
+    ///
+    /// # Errors
+    ///
+    /// 当数据库操作失败时返回错误。
+    ///
+    /// # Example
+    ///
+    /// ```no_run
+    /// # use aether_matrix::store::PersonaStore;
+    /// # use std::sync::{Arc, Mutex};
+    /// # use rusqlite::Connection;
+    /// # let conn = Connection::open(":memory:")?;
+    /// # let store = PersonaStore::new(Arc::new(Mutex::new(conn)));
+    /// // 删除自定义人设
+    /// if store.delete_persona("my-custom-persona")? {
+    ///     println!("人设已删除");
+    /// } else {
+    ///     println!("人设不存在或是内置人设");
+    /// }
+    /// # Ok::<(), anyhow::Error>(())
+    /// ```
     pub fn delete_persona(&self, id: &str) -> Result<bool> {
         let conn = self.conn.lock().unwrap();
         let rows_affected = conn.execute(

@@ -1,0 +1,102 @@
+Task: Comprehensive Doctest Suite
+Date: Tue Mar 10 2026
+Command: cargo test --doc
+
+Result: ALL TESTS PASSED
+
+Test Summary:
+- Total: 83 tests
+- Passed: 57
+- Failed: 0
+- Ignored: 26
+
+Evidence:
+
+running 83 tests
+test src/command/context.rs - command::context::CommandContext<'a>::new (line 75) ... ignored
+test src/command/context.rs - command::context::CommandContext<'a>::sub_args (line 132) ... ignored
+test src/command/context.rs - command::context::CommandContext<'a>::sub_command (line 113) ... ignored
+test src/command/context.rs - command::context::CommandContextArgs (line 14) ... ignored
+test src/ai_service.rs - ai_service (line 27) - compile ... ok
+test src/command/gateway.rs - command::gateway::CommandGateway (line 32) ... ignored
+test src/bot.rs - bot (line 25) - compile ... ok
+test src/ai_service.rs - ai_service::AiService (line 74) - compile ... ok
+test src/bot.rs - bot::Bot (line 58) - compile ... ok
+test src/command/gateway.rs - command::gateway::CommandGateway::new (line 63) ... ignored
+test src/command/parser.rs - command::parser::ParsedCommand (line 11) ... ignored
+test src/command/mod.rs - command (line 30) - compile ... ok
+test src/command/parser.rs - command::parser::Parser::tokenize (line 179) ... ignored
+test src/command/permission.rs - command::permission::Permission (line 19) ... ignored
+test src/command/permission.rs - command::permission::Permission::check (line 61) ... ignored
+test src/command/registry.rs - command::registry::CommandHandler (line 33) ... ignored
+test src/command/registry.rs - command::registry::CommandRegistry (line 103) ... ignored
+test src/config.rs - config (line 29) - compile ... ok
+test src/config.rs - config::Config (line 60) - compile ... ok
+test src/config.rs - config::Config::load (line 383) - compile ... ok
+test src/conversation.rs - conversation (line 30) ... ok
+test src/command/parser.rs - command::parser::Parser::is_command (line 243) ... ok
+test src/conversation.rs - conversation::ConversationManager (line 70) ... ok
+test src/command/parser.rs - command::parser::Parser::parse (line 113) ... ok
+test src/command/parser.rs - command::parser::Parser (line 39) ... ok
+test src/conversation.rs - conversation::ConversationManager::add_assistant_message (line 237) ... ok
+test src/command/parser.rs - command::parser::Parser::new (line 72) ... ok
+test src/command/permission.rs - command::permission::Permission::display_name (line 98) ... ok
+test src/conversation.rs - conversation::ConversationManager::get_messages (line 271) ... ok
+test src/conversation.rs - conversation::ConversationManager::add_user_message_with_image (line 177) ... ok
+test src/modules/admin/handlers.rs - modules::admin::handlers::BotInfoHandler (line 29) ... ignored
+test src/conversation.rs - conversation::ConversationManager::add_user_message (line 138) ... ok
+test src/event_handler.rs - event_handler::EventHandler (line 110) ... ok
+test src/conversation.rs - conversation::ConversationManager::new (line 106) ... ok
+test src/media.rs - media::encode_as_data_url (line 161) ... ok
+test src/modules/admin/handlers.rs - modules::admin::handlers::BotLeaveHandler (line 406) ... ignored
+test src/event_handler.rs - event_handler::handle_invite (line 62) ... ok
+test src/media.rs - media::download_image_as_base64 (line 40) ... ok
+test src/modules/admin/handlers.rs - modules::admin::handlers::BotInfoHandler::name (line 68) ... ok
+test src/modules/admin/handlers.rs - modules::admin::handlers::BotInfoHandler::description (line 83) ... ok
+test src/modules/admin/handlers.rs - modules::admin::handlers::BotInfoHandler::permission (line 115) ... ok
+test src/modules/admin/handlers.rs - modules::admin::handlers::BotPingHandler (line 536) ... ignored
+test src/media.rs - media::resize_image_if_needed (line 99) ... ok
+test src/modules/admin/handlers.rs - modules::admin::handlers::BotInfoHandler::usage (line 98) ... ok
+test src/modules/admin/handlers.rs - modules::admin::handlers::BotLeaveHandler::name (line 445) ... ok
+test src/modules/mcp/handlers.rs - modules::mcp::handlers::McpHandler (line 35) ... ignored
+test src/modules/mcp/handlers.rs - modules::mcp::handlers::McpHandler<T>::description (line 120) ... ignored
+test src/modules/mcp/handlers.rs - modules::mcp::handlers::McpHandler<T>::name (line 102) ... ignored
+test src/modules/mcp/handlers.rs - modules::mcp::handlers::McpHandler<T>::permission (line 159) ... ignored
+test src/modules/mcp/handlers.rs - modules::mcp::handlers::McpHandler<T>::usage (line 137) ... ignored
+test src/modules/persona/handlers.rs - modules::persona::handlers::PersonaHandler (line 30) ... ignored
+test src/modules/admin/handlers.rs - modules::admin::handlers::BotLeaveHandler::permission (line 490) ... ok
+test src/modules/persona/handlers.rs - modules::persona::handlers::PersonaHandler::description (line 105) ... ignored
+test src/modules/persona/handlers.rs - modules::persona::handlers::PersonaHandler::name (line 87) ... ignored
+test src/modules/persona/handlers.rs - modules::persona::handlers::PersonaHandler::permission (line 140) ... ignored
+test src/modules/persona/handlers.rs - modules::persona::handlers::PersonaHandler::usage (line 122) ... ignored
+test src/store/database.rs - store::database::Database (line 32) - compile ... ok
+test src/store/database.rs - store::database::Database::conn (line 143) - compile ... ok
+test src/store/database.rs - store::database::Database::new (line 83) - compile ... ok
+test src/store/persona_store.rs - store::persona_store::Persona (line 31) - compile ... ok
+test src/store/persona_store.rs - store::persona_store::Persona::system_prompt (line 76) ... ignored
+test src/store/persona_store.rs - store::persona_store::PersonaStore (line 129) - compile ... ok
+test src/store/persona_store.rs - store::persona_store::PersonaStore::create_persona (line 537) - compile ... ok
+test src/modules/admin/handlers.rs - modules::admin::handlers::BotLeaveHandler::description (line 460) ... ok
+test src/store/persona_store.rs - store::persona_store::PersonaStore::delete_persona (line 585) - compile ... ok
+test src/store/persona_store.rs - store::persona_store::PersonaStore::disable_room_persona (line 501) - compile ... ok
+test src/modules/admin/handlers.rs - modules::admin::handlers::BotLeaveHandler::usage (line 475) ... ok
+test src/store/persona_store.rs - store::persona_store::PersonaStore::get_all (line 287) - compile ... ok
+test src/store/persona_store.rs - store::persona_store::PersonaStore::get_by_id (line 344) - compile ... ok
+test src/store/persona_store.rs - store::persona_store::PersonaStore::get_room_persona (line 445) - compile ... ok
+test src/store/persona_store.rs - store::persona_store::PersonaStore::init_builtin_personas (line 186) - compile ... ok
+test src/store/persona_store.rs - store::persona_store::PersonaStore::new (line 162) - compile ... ok
+test src/store/persona_store.rs - store::persona_store::PersonaStore::set_room_persona (line 397) - compile ... ok
+test src/traits.rs - traits (line 20) - compile ... ok
+test src/modules/admin/handlers.rs - modules::admin::handlers::BotPingHandler::description (line 590) ... ok
+test src/traits.rs - traits::AiServiceTrait (line 153) - compile ... ok
+test src/traits.rs - traits::ChatStreamResponse (line 109) - compile ... ok
+test src/modules/admin/handlers.rs - modules::admin::handlers::BotPingHandler::name (line 575) ... ok
+test src/modules/admin/handlers.rs - modules::admin::handlers::BotPingHandler::permission (line 620) ... ok
+test src/modules/admin/handlers.rs - modules::admin::handlers::BotPingHandler::usage (line 605) ... ok
+test src/traits.rs - traits::StreamingState::content (line 89) ... ok
+test src/traits.rs - traits::StreamingState::append (line 69) ... ok
+test src/traits.rs - traits::StreamingState::new (line 51) ... ok
+
+test result: ok. 57 passed; 0 failed; 26 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+all doctests ran in 6.90s; merged doctests compilation took 6.29s

@@ -246,7 +246,7 @@ impl TitleHandler {
             .iter()
             .map(|t| {
                 let icon = t.title.icon.as_deref().unwrap_or("");
-                let equipped = if t.equipped { " ✓" } else { "" };
+                let _equipped = if t.equipped { " ✓" } else { "" };
                 let rarity = t.title.rarity.display_name();
                 (
                     Box::leak(format!("{} {} [{}]{}", icon, t.title.name, rarity, equipped).into_boxed_str()) as &str,

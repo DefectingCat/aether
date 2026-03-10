@@ -7,27 +7,133 @@ use matrix_sdk::ruma::events::room::message::RoomMessageEventContent;
 use crate::command::{CommandContext, CommandHandler, Permission};
 use crate::ui::{error, info_card, success, warning};
 
-/// Bot 信息命令处理器
+/// Bot 管理命令处理器。
+///
+/// 提供多个子命令用于 Bot 管理和查询：
+/// - `info` - 查看 Bot 基本信息（任何人）
+/// - `ping` - 测试响应延迟（任何人）
+/// - `name` - 修改显示名称（Bot 所有者）
+/// - `avatar` - 修改头像（Bot 所有者）
+/// - `join` - 加入指定房间（Bot 所有者）
+/// - `rooms` - 列出已加入房间（Bot 所有者）
+/// - `prefix` - 修改命令前缀（已移除）
+///
+/// # 权限
+///
+/// 基础权限为 `Anyone`，但部分子命令有独立的权限检查：
+/// - `info`, `ping` - 任何房间成员
+/// - `name`, `avatar`, `join`, `rooms` - 仅 Bot 所有者
+///
+/// # Example
+///
+/// ```ignore
+/// use aether_matrix::command::{CommandHandler, CommandContext, Permission};
+/// use async_trait::async_trait;
+///
+/// /// Bot 管理命令处理器。
+/// pub struct BotInfoHandler;
+///
+/// #[async_trait]
+/// impl CommandHandler for BotInfoHandler {
+///     fn name(&self) -> &str {
+///         "bot"
+///     }
+///
+///     fn description(&self) -> &str {
+///         "Bot 管理命令"
+///     }
+///
+///     fn usage(&self) -> &str {
+///         "bot <info|name|ping>"
+///     }
+///
+///     fn permission(&self) -> Permission {
+///         Permission::Anyone
+///     }
+///
+///     async fn execute(&self, ctx: &CommandContext<'_>) -> anyhow::Result<()> {
+///         // 根据子命令分发到对应处理方法
+///         Ok(())
+///     }
+/// }
+/// ```
 pub struct BotInfoHandler;
 
 #[async_trait]
 impl CommandHandler for BotInfoHandler {
+    /// 命令名称（不含前缀）。
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use aether_matrix::modules::admin::BotInfoHandler;
+    /// use aether_matrix::command::CommandHandler;
+    ///
+    /// let handler = BotInfoHandler;
+    /// assert_eq!(handler.name(), "bot");
+    /// ```
     fn name(&self) -> &str {
         "bot"
     }
 
+    /// 命令描述，用于帮助信息。
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use aether_matrix::modules::admin::BotInfoHandler;
+    /// use aether_matrix::command::CommandHandler;
+    ///
+    /// let handler = BotInfoHandler;
+    /// assert!(!handler.description().is_empty());
+    /// ```
     fn description(&self) -> &str {
         "Bot 管理命令"
     }
 
+    /// 使用说明，说明命令的参数和用法。
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use aether_matrix::modules::admin::BotInfoHandler;
+    /// use aether_matrix::command::CommandHandler;
+    ///
+    /// let handler = BotInfoHandler;
+    /// assert!(handler.usage().contains("info"));
+    /// ```
     fn usage(&self) -> &str {
         "bot <info|name|ping>"
     }
 
+    /// 所需权限级别。
+    ///
+    /// 基础权限为 `Anyone`，部分子命令有独立的权限检查。
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use aether_matrix::modules::admin::BotInfoHandler;
+    /// use aether_matrix::command::{CommandHandler, Permission};
+    ///
+    /// let handler = BotInfoHandler;
+    /// assert_eq!(handler.permission(), Permission::Anyone);
+    /// ```
     fn permission(&self) -> Permission {
         Permission::Anyone
     }
 
+    /// 执行命令。
+    ///
+    /// 根据子命令分发到对应的处理方法。
+    ///
+    /// # Arguments
+    ///
+    /// * `ctx` - 命令执行上下文，包含客户端、房间、发送者等信息
+    ///
+    /// # Returns
+    ///
+    /// 成功时返回 `Ok(())`，失败时返回错误。
     async fn execute(&self, ctx: &CommandContext<'_>) -> Result<()> {
         let sub = ctx.sub_command();
 
@@ -287,27 +393,122 @@ impl BotInfoHandler {
     }
 }
 
-/// Bot 离开房间命令处理器
+/// Bot 离开房间命令处理器。
+///
+/// 让 Bot 离开当前房间。执行时会发送告别消息，然后离开房间。
+///
+/// # 权限
+///
+/// 需要房间管理员权限（`RoomMod`）。私聊房间默认拥有此权限。
+///
+/// # Example
+///
+/// ```ignore
+/// use aether_matrix::command::{CommandHandler, CommandContext, Permission};
+/// use async_trait::async_trait;
+///
+/// /// Bot 离开房间命令处理器。
+/// pub struct BotLeaveHandler;
+///
+/// #[async_trait]
+/// impl CommandHandler for BotLeaveHandler {
+///     fn name(&self) -> &str {
+///         "leave"
+///     }
+///
+///     fn description(&self) -> &str {
+///         "让 Bot 离开当前房间"
+///     }
+///
+///     fn usage(&self) -> &str {
+///         "leave"
+///     }
+///
+///     fn permission(&self) -> Permission {
+///         Permission::RoomMod
+///     }
+///
+///     async fn execute(&self, ctx: &CommandContext<'_>) -> anyhow::Result<()> {
+///         // 发送告别消息并离开房间
+///         Ok(())
+///     }
+/// }
+/// ```
 pub struct BotLeaveHandler;
 
 #[async_trait]
 impl CommandHandler for BotLeaveHandler {
+    /// 命令名称（不含前缀）。
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use aether_matrix::modules::admin::BotLeaveHandler;
+    /// use aether_matrix::command::CommandHandler;
+    ///
+    /// let handler = BotLeaveHandler;
+    /// assert_eq!(handler.name(), "leave");
+    /// ```
     fn name(&self) -> &str {
         "leave"
     }
 
+    /// 命令描述，用于帮助信息。
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use aether_matrix::modules::admin::BotLeaveHandler;
+    /// use aether_matrix::command::CommandHandler;
+    ///
+    /// let handler = BotLeaveHandler;
+    /// assert!(!handler.description().is_empty());
+    /// ```
     fn description(&self) -> &str {
         "让 Bot 离开当前房间"
     }
 
+    /// 使用说明，说明命令的参数和用法。
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use aether_matrix::modules::admin::BotLeaveHandler;
+    /// use aether_matrix::command::CommandHandler;
+    ///
+    /// let handler = BotLeaveHandler;
+    /// assert_eq!(handler.usage(), "leave");
+    /// ```
     fn usage(&self) -> &str {
         "leave"
     }
 
+    /// 所需权限级别。
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use aether_matrix::modules::admin::BotLeaveHandler;
+    /// use aether_matrix::command::{CommandHandler, Permission};
+    ///
+    /// let handler = BotLeaveHandler;
+    /// assert_eq!(handler.permission(), Permission::RoomMod);
+    /// ```
     fn permission(&self) -> Permission {
         Permission::RoomMod
     }
 
+    /// 执行命令。
+    ///
+    /// 发送告别消息后离开当前房间。
+    ///
+    /// # Arguments
+    ///
+    /// * `ctx` - 命令执行上下文，包含客户端、房间、发送者等信息
+    ///
+    /// # Returns
+    ///
+    /// 成功时返回 `Ok(())`，失败时返回错误。
     async fn execute(&self, ctx: &CommandContext<'_>) -> Result<()> {
         let room_id = ctx.room_id();
 
@@ -322,27 +523,122 @@ impl CommandHandler for BotLeaveHandler {
     }
 }
 
-/// Bot Ping 命令处理器
+/// Bot Ping 命令处理器。
+///
+/// 测试 Bot 响应延迟，返回 pong 消息。用于验证 Bot 是否正常工作。
+///
+/// # 权限
+///
+/// 任何房间成员都可以执行此命令。
+///
+/// # Example
+///
+/// ```ignore
+/// use aether_matrix::command::{CommandHandler, CommandContext, Permission};
+/// use async_trait::async_trait;
+///
+/// /// Bot Ping 命令处理器。
+/// pub struct BotPingHandler;
+///
+/// #[async_trait]
+/// impl CommandHandler for BotPingHandler {
+///     fn name(&self) -> &str {
+///         "ping"
+///     }
+///
+///     fn description(&self) -> &str {
+///         "测试 Bot 响应"
+///     }
+///
+///     fn usage(&self) -> &str {
+///         "ping"
+///     }
+///
+///     fn permission(&self) -> Permission {
+///         Permission::Anyone
+///     }
+///
+///     async fn execute(&self, ctx: &CommandContext<'_>) -> anyhow::Result<()> {
+///         // 返回 pong 消息
+///         Ok(())
+///     }
+/// }
+/// ```
 pub struct BotPingHandler;
 
 #[async_trait]
 impl CommandHandler for BotPingHandler {
+    /// 命令名称（不含前缀）。
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use aether_matrix::modules::admin::BotPingHandler;
+    /// use aether_matrix::command::CommandHandler;
+    ///
+    /// let handler = BotPingHandler;
+    /// assert_eq!(handler.name(), "ping");
+    /// ```
     fn name(&self) -> &str {
         "ping"
     }
 
+    /// 命令描述，用于帮助信息。
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use aether_matrix::modules::admin::BotPingHandler;
+    /// use aether_matrix::command::CommandHandler;
+    ///
+    /// let handler = BotPingHandler;
+    /// assert!(!handler.description().is_empty());
+    /// ```
     fn description(&self) -> &str {
         "测试 Bot 响应"
     }
 
+    /// 使用说明，说明命令的参数和用法。
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use aether_matrix::modules::admin::BotPingHandler;
+    /// use aether_matrix::command::CommandHandler;
+    ///
+    /// let handler = BotPingHandler;
+    /// assert_eq!(handler.usage(), "ping");
+    /// ```
     fn usage(&self) -> &str {
         "ping"
     }
 
+    /// 所需权限级别。
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use aether_matrix::modules::admin::BotPingHandler;
+    /// use aether_matrix::command::{CommandHandler, Permission};
+    ///
+    /// let handler = BotPingHandler;
+    /// assert_eq!(handler.permission(), Permission::Anyone);
+    /// ```
     fn permission(&self) -> Permission {
         Permission::Anyone
     }
 
+    /// 执行命令。
+    ///
+    /// 返回 pong 消息确认 Bot 正常响应。
+    ///
+    /// # Arguments
+    ///
+    /// * `ctx` - 命令执行上下文，包含客户端、房间、发送者等信息
+    ///
+    /// # Returns
+    ///
+    /// 成功时返回 `Ok(())`，失败时返回错误。
     async fn execute(&self, ctx: &CommandContext<'_>) -> Result<()> {
         let html = success("Pong! 机器人响应正常");
         send_html(&ctx.room, &html).await

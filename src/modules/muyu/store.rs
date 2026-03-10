@@ -375,4 +375,16 @@ impl MuyuStore {
 
         Ok(drops)
     }
+
+    /// 统计用户掉落物品数量
+    #[allow(dead_code)]
+    pub fn count_drops(&self, user_id: &str, room_id: &str) -> Result<i64> {
+        let conn = self.conn.lock().unwrap();
+        let count: i64 = conn.query_row(
+            "SELECT COUNT(*) FROM drops WHERE user_id = ?1 AND room_id = ?2",
+            params![user_id, room_id],
+            |row| row.get(0),
+        )?;
+        Ok(count)
+    }
 }
