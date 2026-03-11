@@ -260,9 +260,10 @@ pub struct MemeConfig {
     #[serde(default = "default_meme_enabled")]
     pub enabled: bool,
 
-    /// Tenor API Key。
+    /// KLIPY API Key。
     ///
-    /// 从 https://developers.google.com/tenor/guides/quickstart 获取
+    /// 从 https://partner.klipy.com 获取。
+    /// 也支持旧的 TENOR_API_KEY 环境变量（向后兼容）。
     pub api_key: Option<String>,
 
     /// 每次搜索返回的结果数量。
@@ -546,15 +547,21 @@ impl Config {
         if let Ok(v) = std::env::var("MEME_ENABLED") {
             self.meme.enabled = v.to_lowercase() != "false";
         }
-        if let Ok(v) = std::env::var("TENOR_API_KEY") {
+        if let Ok(v) = std::env::var("KLIPY_API_KEY") {
             self.meme.api_key = Some(v);
+        }
+        // 同时支持旧的 TENOR_API_KEY 环境变量（向后兼容）
+        if self.meme.api_key.is_none() {
+            if let Ok(v) = std::env::var("TENOR_API_KEY") {
+                self.meme.api_key = Some(v);
+            }
         }
         if let Ok(v) = std::env::var("MEME_LIMIT")
             && let Ok(n) = v.parse()
         {
             self.meme.limit = n;
         }
-        // 如果设置了 TENOR_API_KEY，自动启用 meme 功能
+        // 如果设置了 KLIPY_API_KEY，自动启用 meme 功能
         if self.meme.api_key.is_some() {
             self.meme.enabled = true;
         }

@@ -2,16 +2,15 @@
 
 use anyhow::Result;
 use async_trait::async_trait;
-use matrix_sdk::ruma::events::room::message::{ImageMessageEventContent, MessageType, RoomMessageEventContent};
-use matrix_sdk::ruma::MxcUri;
+use matrix_sdk::attachment::AttachmentConfig;
 
 use crate::command::{CommandContext, CommandHandler, Permission};
-use crate::modules::meme::tenor::TenorClient;
+use crate::modules::meme::klipy::KlipyClient;
 use crate::ui::{error, info_card};
 
 /// Meme 梗图命令处理器。
 ///
-/// 使用 Tenor GIF API 搜索并发送梗图。
+/// 使用 KLIPY GIF API 搜索并发送梗图。
 ///
 /// # 命令
 ///
@@ -21,13 +20,13 @@ use crate::ui::{error, info_card};
 ///
 /// 任何房间成员都可以执行。
 pub struct MemeHandler {
-    tenor: Option<TenorClient>,
+    klipy: Option<KlipyClient>,
 }
 
 impl MemeHandler {
     /// 创建新的 Meme 命令处理器。
-    pub fn new(tenor: Option<TenorClient>) -> Self {
-        Self { tenor }
+    pub fn new(klipy: Option<KlipyClient>) -> Self {
+        Self { klipy }
     }
 }
 
@@ -50,30 +49,31 @@ impl CommandHandler for MemeHandler {
     }
 
     async fn execute(&self, ctx: &CommandContext<'_>) -> Result<()> {
-        let query: String = ctx.sub_args().join(" ");
+        // !meme 命令没有子命令结构，所有参数都是搜索关键词
+        let query: String = ctx.args.join(" ");
         if query.is_empty() {
             let html = info_card("Meme 命令", &[("!meme <关键词>", "搜索并发送梗图")]);
             return send_html(&ctx.room, &html).await;
         }
 
-        // 检查是否配置了 Tenor API Key
-        let tenor = match &self.tenor {
-            Some(t) => t,
+        // 检查是否配置了 KLIPY API Key
+        let klipy = match &self.klipy {
+            Some(k) => k,
             None => {
-                let html = error("梗图功能未配置。请在 .env 中设置 TENOR_API_KEY");
+                let html = error("梗图功能未配置。请在 .env 中设置 KLIPY_API_KEY\n注册地址: https://partner.klipy.com");
                 return send_html(&ctx.room, &html).await;
             }
         };
 
         // 搜索 GIF
-        let gif_result = match tenor.search(&query).await {
+        let gif_result = match klipy.search(&query).await {
             Ok(Some(result)) => result,
             Ok(None) => {
                 let html = error(&format!("没有找到匹配「{}」的梗图", query));
                 return send_html(&ctx.room, &html).await;
             }
             Err(e) => {
-                tracing::error!("Tenor API 错误: {}", e);
+                tracing::error!("KLIPY API 错误: {}", e);
                 let html = error(&format!("搜索梗图失败: {}", e));
                 return send_html(&ctx.room, &html).await;
             }
@@ -97,28 +97,21 @@ impl CommandHandler for MemeHandler {
             }
         };
 
-        // 上传到 Matrix media server
-        let media = ctx.client.media();
+        // 使用 send_attachment 发送图片（自动处理图片信息和缩略图）
         let mime_type: mime::Mime = "image/gif".parse()?;
-        let upload_response = match media.upload(&mime_type, bytes.to_vec(), None).await {
-            Ok(r) => r,
+        let filename = format!("{}.gif", query);
+        let config = AttachmentConfig::new();
+
+        match ctx.room.send_attachment(&filename, &mime_type, bytes.to_vec(), config).await {
+            Ok(_) => {
+                tracing::info!("已发送梗图: {}", query);
+            }
             Err(e) => {
-                let html = error(&format!("上传梗图失败: {}", e));
+                let html = error(&format!("发送梗图失败: {}", e));
                 return send_html(&ctx.room, &html).await;
             }
-        };
+        }
 
-        // 发送图片消息
-        let mxc_uri: &MxcUri = &upload_response.content_uri;
-        let image_content = ImageMessageEventContent::plain(
-            query.clone(),
-            mxc_uri.to_owned().into(),
-        );
-
-        let message = RoomMessageEventContent::new(MessageType::Image(image_content));
-        ctx.room.send(message).await?;
-
-        tracing::info!("已发送梗图: {}", query);
         Ok(())
     }
 }
@@ -131,7 +124,7 @@ async fn send_html(room: &matrix_sdk::Room, html: &str) -> Result<()> {
         .take(100)
         .collect::<String>();
 
-    let content = RoomMessageEventContent::text_html(plain_text, html);
+    let content = matrix_sdk::ruma::events::room::message::RoomMessageEventContent::text_html(plain_text, html);
     room.send(content).await?;
     Ok(())
 }

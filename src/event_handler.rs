@@ -70,7 +70,7 @@ use crate::config::Config;
 use crate::media::download_image_as_base64;
 use crate::modules::admin::{BotInfoHandler, BotLeaveHandler, BotPingHandler};
 use crate::modules::mcp::McpHandler;
-use crate::modules::meme::{MemeHandler, TenorClient};
+use crate::modules::meme::{KlipyClient, MemeHandler};
 use crate::modules::muyu::{
     BagHandler, MeritHandler, MuyuHandler, MuyuStore, RankHandler, TitleHandler,
 };
@@ -300,10 +300,10 @@ impl<T: AiServiceTrait> EventHandler<T> {
 
         // 注册 Meme 梗图命令
         if config.meme.enabled {
-            let tenor = config.meme.api_key.clone().map(|key| {
-                TenorClient::new(key, config.meme.limit)
+            let klipy = config.meme.api_key.clone().map(|key| {
+                KlipyClient::new(key, config.meme.limit)
             });
-            command_gateway.register(Arc::new(MemeHandler::new(tenor)));
+            command_gateway.register(Arc::new(MemeHandler::new(klipy)));
             info!("Meme 命令已注册，可用命令: !meme <关键词>");
         }
 
