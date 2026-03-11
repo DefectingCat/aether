@@ -30,6 +30,7 @@ rusqlite = { version = "0.37", features = ["bundled"] }
 chrono = { version = "0.4", features = ["serde"] }
 dashmap = "6"
 rand = "0.10"
+urlencoding = "2.1"
 
 # MCP dependencies
 schemars = { version = "1.2", features = ["derive"] }

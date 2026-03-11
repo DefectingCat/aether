@@ -159,6 +159,7 @@ fn create_test_config() -> Config {
         },
         proxy: None,
         mcp: aether_matrix::mcp::McpConfig::default(),
+        meme: aether_matrix::config::MemeConfig::default(),
     }
 }
 

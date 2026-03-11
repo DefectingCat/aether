@@ -80,6 +80,7 @@ mod config_tests {
             },
             proxy: None,
             mcp: aether_matrix::mcp::McpConfig::default(),
+            meme: aether_matrix::config::MemeConfig::default(),
         };
 
         assert_eq!(config.matrix.homeserver, "https://custom.server");
@@ -136,6 +137,7 @@ mod bot_tests {
             },
             proxy: None,
             mcp: aether_matrix::mcp::McpConfig::default(),
+            meme: aether_matrix::config::MemeConfig::default(),
         }
     }
 

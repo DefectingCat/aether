@@ -2,5 +2,6 @@
 
 pub mod admin;
 pub mod mcp;
+pub mod meme;
 pub mod muyu;
 pub mod persona;
